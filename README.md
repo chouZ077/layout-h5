@@ -1,5 +1,37 @@
 # layout-h5
 
+## 简易中文版
+
+`layout-h5` 是一个单客户案例 H5 生成器：用一份结构化 JSON，生成一张深色 16:9 的交互式案例卡。它适合把客户案例讲成三段：
+
+- **改造前**：原来的流程断点、协同痛点、责任链问题
+- **改造后**：新的价值链路、AI 中枢、业务闭环
+- **案例实证**：截图、视频、指标、证据链，或自定义 raw 页面
+
+最基础的使用方式：
+
+```bash
+cd layout-h5
+python validate.py examples/raw-pane-demo.json --assets out --skip-assets
+python build.py examples/raw-pane-demo.json out/index.html
+```
+
+生成后打开 `out/index.html` 即可预览。案例内容写在 JSON 里，视觉底座和交互由 `template.html` 负责。
+
+如果要把 `layout-h5` 生成的页面集成进 `feishu-deck-h5`，推荐使用**全屏 iframe**。不要把两个 HTML 的 DOM 直接拼在一起，否则容易出现 CSS、JS、缩放和 hash 路由冲突。
+
+```html
+<iframe
+  src="cases/customer-a/index.html"
+  title="客户案例 H5"
+  style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#030611"
+></iframe>
+```
+
+详细说明见下方英文文档的 **Integrating Into feishu-deck-h5** 部分。
+
+---
+
 `layout-h5` is a single-case interactive H5 card renderer. It turns one structured case JSON into a dark 16:9 web experience with three switchable panes:
 
 - before: pain points and broken links before the change
