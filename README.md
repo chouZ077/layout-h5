@@ -26,9 +26,6 @@ python build.py examples/raw-pane-demo.json out/index.html
   title="客户案例 H5"
   style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#030611"
 ></iframe>
-```
-
-详细说明见下方英文文档的 **Integrating Into feishu-deck-h5** 部分。
 
 ---
 
