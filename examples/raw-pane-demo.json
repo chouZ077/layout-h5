@@ -1,0 +1,16 @@
+{
+  "doc_title": "raw 授权作图 demo · 组织树",
+  "brand": "DEMO × 飞书｜raw 授权作图",
+  "initial": "before",
+  "header": {
+    "title": "raw 授权作图：同一个底座，长出 swimlane 之外的视觉",
+    "sub": "这一幕用 layout:\"raw\" 自写了一棵组织树——节点用底座 .pain-node，连线用 CaseCard.drawEdges 运行时实测生成（拖动节点线会跟着走），动效用 CaseCard.reveal。底座 token、灯箱、缩放、validator 全部照旧。"
+  },
+  "panes": {
+    "before": {
+      "layout": "raw",
+      "html": "<div class='layout'><section class='map-panel'><div class='tree' style='position:relative;height:100%'><div class='pain-node' data-node='hq' style='left:24px;top:352px;width:200px'><b>集团总部</b><span>专项目标 / 标准下发</span><i class='avatar'>总</i></div><div class='pain-node' data-node='r1' style='left:432px;top:168px;width:200px'><b>华东大区</b><span>区域宣贯 / 督导</span><i class='avatar'>东</i></div><div class='pain-node' data-node='r2' style='left:432px;top:520px;width:200px'><b>华南大区</b><span>区域宣贯 / 督导</span><i class='avatar'>南</i></div><div class='pain-node' data-node='s1' style='left:840px;top:80px;width:200px'><b>门店 A</b><span>执行 / 回执</span><i class='avatar'>店</i></div><div class='pain-node' data-node='s2' style='left:840px;top:272px;width:200px'><b>门店 B</b><span>执行 / 回执</span><i class='avatar'>店</i></div><div class='pain-node sys' data-node='s3' style='left:840px;top:520px;width:200px'><b>门店 C</b><span>执行断档 / 漏回执</span><i class='avatar'>店</i></div></div></section><aside class='side-panel'><h2 class='side-title'>层级越深，标准越衰减</h2><p class='side-copy'>总部定义清楚的专项，逐级下发到门店端容易变成各自理解、各自执行——这正是 swimlane 表达不了、需要一棵树才讲得清的结构。</p><p class='side-copy' style='color:var(--amber)'>本页是 raw demo：版式自由，品牌与连线机制不自由。</p></aside></div>",
+      "js": "var map = pane.querySelector('.tree'); var svg = CaseCard.svg(map, true); var nodes = {}; map.querySelectorAll('[data-node]').forEach(function (n) { nodes[n.dataset.node] = n; CaseCard.reveal(n, 0); }); CaseCard.drawEdges(svg, map, nodes, [ { from:'hq', to:'r1' }, { from:'hq', to:'r2' }, { from:'r1', to:'s1' }, { from:'r1', to:'s2' }, { from:'r2', to:'s3' } ], 'draw');"
+    }
+  }
+}

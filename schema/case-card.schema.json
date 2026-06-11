@@ -1,0 +1,602 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "case-card-h5/schema/case-card.schema.json",
+  "title": "case-card-h5 data",
+  "description": "单客户案例交互卡（之前 / 之后 / 案例实证 三态）的全部内容数据。模板负责一切视觉与交互；本 JSON 只装内容。",
+  "type": "object",
+  "required": ["header", "panes"],
+  "additionalProperties": false,
+  "properties": {
+    "doc_title": { "type": "string", "description": "浏览器标签页标题；缺省用 header.title" },
+    "brand": { "type": "string", "description": "右上角品牌行，如 'PENGFEI × 飞书｜智创先锋队'" },
+    "motion": { "type": "boolean", "default": true, "description": "false = 关闭所有入场动效" },
+    "initial": { "enum": ["before", "after", "evidence"], "description": "默认打开的 pane；缺省取 panes 中存在的第一个（按 before/after/evidence 顺序）" },
+    "links": {
+      "type": "array",
+      "description": "toggle 栏右侧的外链按钮（如 原始案例）",
+      "items": {
+        "type": "object",
+        "required": ["label", "href"],
+        "additionalProperties": false,
+        "properties": {
+          "label": { "type": "string", "maxLength": 8 },
+          "href": { "type": "string" }
+        }
+      }
+    },
+    "header": {
+      "type": "object",
+      "required": ["title"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "maxLength": 40, "description": "H1，一行论点句，预算 ≤32 全角字符" },
+        "sub": { "type": "string", "maxLength": 160, "description": "副标题，预算 ≤140，最多两行" }
+      }
+    },
+    "panes": {
+      "type": "object",
+      "description": "三幕脊柱（冻结）：before/after/evidence。每一幕可以是内置版式（填数据）或 layout:\"raw\"（授权作图）。幕的数量和身份不可改，只能改某一幕用什么视觉。",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "before": { "oneOf": [{ "$ref": "#/$defs/paneBefore" }, { "$ref": "#/$defs/paneBeforeNetwork" }, { "$ref": "#/$defs/rawPane" }] },
+        "after": { "oneOf": [{ "$ref": "#/$defs/paneAfter" }, { "$ref": "#/$defs/paneAfterJourney" }, { "$ref": "#/$defs/rawPane" }] },
+        "evidence": { "oneOf": [{ "$ref": "#/$defs/paneEvidence" }, { "$ref": "#/$defs/rawPane" }] }
+      }
+    }
+  },
+  "$defs": {
+    "breakpoints": {
+      "type": "array", "minItems": 1, "maxItems": 6,
+      "description": "红色断点 pill，点击驱动右侧诊断面板。推荐 3-4 个。swimlane / column-network 共用。",
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "between", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "key": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "label": { "type": "string", "maxLength": 14 },
+          "between": {
+            "type": "array", "minItems": 2, "maxItems": 2,
+            "description": "两个 node/item key，pill 落在二者中点（实测）",
+            "items": { "type": "string" }
+          },
+          "offset": {
+            "type": "array", "minItems": 2, "maxItems": 2,
+            "description": "可选 [dx,dy] 微调，仅用于解重叠",
+            "items": { "type": "number" }
+          },
+          "related": { "type": "array", "items": { "type": "string" }, "description": "选中时高亮的 node/item key" },
+          "detail": {
+            "type": "object",
+            "required": ["title", "cards"],
+            "additionalProperties": false,
+            "properties": {
+              "kicker": { "type": "string", "maxLength": 24 },
+              "title": { "type": "string", "maxLength": 22, "description": "反问句最有力" },
+              "summary": { "type": "string", "maxLength": 60 },
+              "chain": {
+                "type": "object",
+                "required": ["from", "to"],
+                "additionalProperties": false,
+                "properties": {
+                  "from": { "type": "string", "maxLength": 10 },
+                  "to": { "type": "string", "maxLength": 10 }
+                }
+              },
+              "cards": {
+                "type": "array", "minItems": 2, "maxItems": 4,
+                "description": "诊断三联：根本原因 / 业务影响 / 关键后果，第一张自动红色高亮",
+                "items": {
+                  "type": "object",
+                  "required": ["label", "text"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "label": { "type": "string", "maxLength": 8 },
+                    "text": { "type": "string", "maxLength": 90 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "legend": {
+      "type": "array", "maxItems": 3,
+      "description": "左下角图例。缺省 [flow=人工推进, data=经验回流]",
+      "items": {
+        "type": "object",
+        "required": ["kind", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["flow", "data"] },
+          "label": { "type": "string", "maxLength": 8 }
+        }
+      }
+    },
+    "paneBeforeNetwork": {
+      "type": "object",
+      "description": "之前·列式网络（column-network）：N 列，每列纵向流式排布若干 item，item 可为 flat 节点或 group（表头+子项），跨列任意连线。覆盖广丰/永卓那类“多角色/多组织/多环节”的旧链路。列内位置由 flex 自动均分（不手写坐标），连线由 CaseCard 运行时实测生成。断点/诊断/图例与 swimlane 共用。",
+      "required": ["layout", "columns", "breakpoints"],
+      "additionalProperties": false,
+      "properties": {
+        "layout": { "const": "column-network" },
+        "label": { "type": "string", "maxLength": 6, "description": "toggle 文案，缺省 '之前'；别填视觉隐喻名" },
+        "sub": { "type": "string", "maxLength": 160 },
+        "columns": {
+          "type": "array", "minItems": 2, "maxItems": 5,
+          "description": "列。推荐 3-4 列，对应旧链路的阶段/层级。",
+          "items": {
+            "type": "object",
+            "required": ["items"],
+            "additionalProperties": false,
+            "properties": {
+              "title": { "type": "string", "maxLength": 12, "description": "列标题（中文）" },
+              "en": { "type": "string", "maxLength": 24, "description": "列标题英文小字" },
+              "items": {
+                "type": "array", "minItems": 1, "maxItems": 6,
+                "items": {
+                  "type": "object",
+                  "required": ["title"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "key": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "连线/断点引用用；不连线的 item 可省略" },
+                    "title": { "type": "string", "maxLength": 12 },
+                    "desc": { "type": "string", "maxLength": 26 },
+                    "icon": { "type": "string", "maxLength": 2, "description": "单字图标（flat 节点右侧 / group 表头序号位）" },
+                    "variant": { "enum": ["sys", "warn"], "description": "sys=资料类淡青；warn=红色警示" },
+                    "dim": { "type": "boolean" },
+                    "group": { "type": "boolean", "description": "true = 分组卡（表头 + children）" },
+                    "children": {
+                      "type": "array",
+                      "description": "分组子项（group=true 时）",
+                      "items": {
+                        "type": "object",
+                        "required": ["title"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "title": { "type": "string", "maxLength": 14 },
+                          "desc": { "type": "string", "maxLength": 26 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "description": "跨列连线，from/to 为 item key。坐标由运行时实测，禁止手写。",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "kind": { "enum": ["flow", "data"], "default": "flow" }
+            }
+          }
+        },
+        "breakpoints": { "$ref": "#/$defs/breakpoints" },
+        "legend": { "$ref": "#/$defs/legend" }
+      }
+    },
+    "paneAfterJourney": {
+      "type": "object",
+      "description": "之后·旅程时间线（journey）：可选轨（rail，N 站）+ N 张等宽卡，每卡 角色/标题/前后对比/证据图。覆盖广丰/永卓那类“一个角色一天/一条流程怎么变好”的叙事。卡片由 grid 自动均分（不手写坐标）。有 side 则右栏放指标（沿用 metric），无 side 整幅铺满。",
+      "required": ["layout", "cards"],
+      "additionalProperties": false,
+      "properties": {
+        "layout": { "const": "journey" },
+        "label": { "type": "string", "maxLength": 6, "description": "toggle 文案，缺省 '之后'；别填视觉隐喻名" },
+        "sub": { "type": "string", "maxLength": 160 },
+        "rail": {
+          "type": "array", "minItems": 2, "maxItems": 5,
+          "description": "顶部时间轨的站点标签，建议与 cards 数一致",
+          "items": { "type": "string", "maxLength": 10 }
+        },
+        "cards": {
+          "type": "array", "minItems": 3, "maxItems": 5,
+          "description": "旅程卡。推荐 4 张。",
+          "items": {
+            "type": "object",
+            "required": ["title"],
+            "additionalProperties": false,
+            "properties": {
+              "eyebrow": { "type": "string", "maxLength": 18, "description": "角色 · 阶段，如 '高炉工长 · 基层执行'" },
+              "title": { "type": "string", "maxLength": 18 },
+              "before": { "type": "string", "maxLength": 64, "description": "这一步'之前'怎么做" },
+              "after": { "type": "string", "maxLength": 64, "description": "这一步'之后'怎么做（青色高亮）" },
+              "shot": {
+                "type": "object",
+                "required": ["image"],
+                "additionalProperties": false,
+                "properties": {
+                  "image": { "type": "string" },
+                  "full": { "type": "string", "description": "灯箱大图，缺省同 image" },
+                  "caption": { "type": "string", "maxLength": 40, "description": "灯箱说明" },
+                  "note": { "type": "string", "maxLength": 30, "description": "图下一句话" }
+                }
+              }
+            }
+          }
+        },
+        "side": {
+          "type": "object",
+          "description": "可选右栏，结构同 hub-3col 的 side（标题 + copy + 指标卡）",
+          "required": ["title", "metrics"],
+          "additionalProperties": false,
+          "properties": {
+            "title": { "type": "string", "maxLength": 20 },
+            "copy": { "type": "string", "maxLength": 90 },
+            "metrics": {
+              "type": "array", "minItems": 3, "maxItems": 6,
+              "items": {
+                "type": "object",
+                "required": ["title", "desc"],
+                "additionalProperties": false,
+                "properties": {
+                  "title": { "type": "string", "maxLength": 16 },
+                  "desc": { "type": "string", "maxLength": 48 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "rawPane": {
+      "type": "object",
+      "description": "授权作图：当案例的某一幕不该套内置版式（需要新的视觉隐喻，如组织树/网络拓扑/时间线）时，用 raw 在底座之上自写版式。仍受底座 token、连线工具、动效、灯箱、validator 约束 —— 自由的是版式，不是品牌与诚信。视觉隐喻在 ≥2 个案例复现后，再考虑固化成新的内置版式。",
+      "required": ["layout", "html"],
+      "additionalProperties": false,
+      "properties": {
+        "layout": { "const": "raw" },
+        "label": { "type": "string", "maxLength": 6, "description": "toggle 文案。沿用三幕导航语义（之前/之后/案例实证，或轻改写如 改造前/改造后）。禁止填内部视觉隐喻名（执行树/闭环链/网络图）——toggle 是给读者的导航，不是给你标注用了什么版式。" },
+        "sub": { "type": "string", "maxLength": 160, "description": "本幕副标题覆写" },
+        "html": { "type": "string", "description": "作者 markup，注入 .raw-pane（约 1788×820 画布）。用底座类（.map-panel/.side-panel/.node/.metric-card…）和 var(--token) 着色。截图卡加 data-full/data-caption 即获灯箱。禁止 <script>（innerHTML 不执行它）。" },
+        "css": { "type": "string", "description": "随该幕注入的样式。颜色优先 var(--blue/--teal/--orange/--amber/--red/--text/--muted)；类名建议加案例前缀防冲突。" },
+        "js": { "type": "string", "description": "可选。以 new Function(pane, CaseCard) 运行（pane=该 .raw-pane）。优先复用 CaseCard.drawEdges/reveal/lightbox/rect 等底座 API，别重写画线/动效。脚本进这里才能 round-trip（重建不丢）。" }
+      }
+    },
+    "paneBefore": {
+      "type": "object",
+      "description": "旧链路痛点图：阶段 × 泳道节点矩阵 + 流转连线 + 可点断点 + 右侧诊断面板",
+      "required": ["stages", "lanes", "nodes", "breakpoints"],
+      "additionalProperties": false,
+      "properties": {
+        "layout": { "const": "swimlane", "description": "内置版式（可省略，before 默认即 swimlane）" },
+        "label": { "type": "string", "maxLength": 6, "description": "toggle 文案，缺省 '之前'。沿用之前/之后/实证导航语义，别填视觉隐喻名（执行树/闭环链）。" },
+        "sub": { "type": "string", "maxLength": 160, "description": "本 pane 的副标题覆写；缺省用 header.sub" },
+        "banner": {
+          "type": "object",
+          "description": "图上方的一句话定调横幅",
+          "required": ["title", "desc"],
+          "additionalProperties": false,
+          "properties": {
+            "icon": { "type": "string", "maxLength": 2, "description": "单个全角字符" },
+            "title": { "type": "string", "maxLength": 14 },
+            "desc": { "type": "string", "maxLength": 64 }
+          }
+        },
+        "stages": {
+          "type": "array", "minItems": 2, "maxItems": 5,
+          "description": "横向阶段（列），如 'G1 现场发现'。推荐 4 个。",
+          "items": { "type": "string", "maxLength": 10 }
+        },
+        "lanes": {
+          "type": "array", "minItems": 1, "maxItems": 4,
+          "description": "纵向泳道（行），如 '现场风险'。推荐 3 个。",
+          "items": { "type": "string", "maxLength": 6 }
+        },
+        "nodes": {
+          "type": "array", "minItems": 2, "maxItems": 20,
+          "description": "矩阵节点。推荐填满 stages × lanes。",
+          "items": {
+            "type": "object",
+            "required": ["key", "title", "stage", "lane"],
+            "additionalProperties": false,
+            "properties": {
+              "key": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+              "title": { "type": "string", "maxLength": 12 },
+              "desc": { "type": "string", "maxLength": 26, "description": "用 ' / ' 分隔的关键词组" },
+              "icon": { "type": "string", "maxLength": 2, "description": "右上角头像字，单字" },
+              "stage": { "type": "integer", "minimum": 0, "description": "列下标，0 起" },
+              "lane": { "type": "integer", "minimum": 0, "description": "行下标，0 起" },
+              "variant": { "enum": ["sys", "warn"], "description": "sys=系统/资料类淡青底；warn=红色警示底" },
+              "dim": { "type": "boolean", "description": "true = 降透明度弱化（非当前断点焦点的节点）" }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "description": "连线。缺省自动按泳道把相邻阶段节点连成 flow。坐标由运行时测量生成，禁止手写坐标。",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string", "description": "node key" },
+              "to": { "type": "string", "description": "node key" },
+              "kind": { "enum": ["flow", "data"], "default": "flow", "description": "flow=实线箭头(人工推进)；data=青色虚线(数据/经验回流)" }
+            }
+          }
+        },
+        "breakpoints": {
+          "type": "array", "minItems": 1, "maxItems": 6,
+          "description": "红色断点 pill，点击驱动右侧诊断面板。推荐 3-4 个。",
+          "items": {
+            "type": "object",
+            "required": ["key", "label", "between", "detail"],
+            "additionalProperties": false,
+            "properties": {
+              "key": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+              "label": { "type": "string", "maxLength": 14, "description": "pill 文案，如 '逐级传递，责任链慢'" },
+              "between": {
+                "type": "array", "minItems": 2, "maxItems": 2,
+                "description": "两个 node key，pill 落在二者中点。语义优先：选断点真正发生在其间的两个节点。",
+                "items": { "type": "string" }
+              },
+              "offset": {
+                "type": "array", "minItems": 2, "maxItems": 2,
+                "description": "可选微调 [dx, dy]（设计像素）。只在重叠时用，别拿它做布局。",
+                "items": { "type": "number" }
+              },
+              "related": {
+                "type": "array",
+                "description": "选中此断点时高亮的 node key 列表",
+                "items": { "type": "string" }
+              },
+              "detail": {
+                "type": "object",
+                "required": ["title", "cards"],
+                "additionalProperties": false,
+                "properties": {
+                  "kicker": { "type": "string", "maxLength": 24, "description": "如 'BREAKPOINT 02 · 传递断点'" },
+                  "title": { "type": "string", "maxLength": 22, "description": "用反问句最有力" },
+                  "summary": { "type": "string", "maxLength": 60 },
+                  "chain": {
+                    "type": "object",
+                    "description": "根因 → 影响 两格因果链",
+                    "required": ["from", "to"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "from": { "type": "string", "maxLength": 10 },
+                      "to": { "type": "string", "maxLength": 10 }
+                    }
+                  },
+                  "cards": {
+                    "type": "array", "minItems": 2, "maxItems": 4,
+                    "description": "诊断三元组：固定写 根本原因 / 业务影响 / 关键后果 三张，第一张自动红色高亮",
+                    "items": {
+                      "type": "object",
+                      "required": ["label", "text"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "label": { "type": "string", "maxLength": 8 },
+                        "text": { "type": "string", "maxLength": 90 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "legend": {
+          "type": "array", "maxItems": 3,
+          "description": "左下角图例。缺省 [flow=人工推进, data=经验回流]",
+          "items": {
+            "type": "object",
+            "required": ["kind", "label"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["flow", "data"] },
+              "label": { "type": "string", "maxLength": 8 }
+            }
+          }
+        }
+      }
+    },
+    "paneAfter": {
+      "type": "object",
+      "description": "新链路价值图：输入 stack → AI 中枢 → 业务闭环 三列 + 右侧指标面板。连线自动扇入/扇出。",
+      "required": ["inputs", "hub", "outputs", "side"],
+      "additionalProperties": false,
+      "properties": {
+        "layout": { "const": "hub-3col", "description": "内置版式（可省略，after 默认即 hub-3col）" },
+        "label": { "type": "string", "maxLength": 6 },
+        "sub": { "type": "string", "maxLength": 160 },
+        "columns": {
+          "type": "object",
+          "description": "三列标题（中文 + 英文小字）。缺省：现场输入/AI 中枢/业务闭环",
+          "additionalProperties": false,
+          "properties": {
+            "inputs": { "$ref": "#/$defs/colTitle" },
+            "hub": { "$ref": "#/$defs/colTitle" },
+            "outputs": { "$ref": "#/$defs/colTitle" }
+          }
+        },
+        "inputs": {
+          "type": "array", "minItems": 3, "maxItems": 7,
+          "description": "左列输入节点。推荐 5-6 个。",
+          "items": { "$ref": "#/$defs/iconNode" }
+        },
+        "hub": {
+          "type": "object",
+          "required": ["core"],
+          "additionalProperties": false,
+          "properties": {
+            "core": {
+              "type": "object",
+              "required": ["title"],
+              "additionalProperties": false,
+              "properties": {
+                "title": { "type": "string", "maxLength": 14, "description": "中枢系统名（金色高亮卡）" },
+                "desc": { "type": "string", "maxLength": 50, "description": "技术栈，用 ' + ' 连接" }
+              }
+            },
+            "cells": {
+              "type": "array", "maxItems": 4,
+              "description": "中枢能力卡，推荐 3 个",
+              "items": {
+                "type": "object",
+                "required": ["title", "desc"],
+                "additionalProperties": false,
+                "properties": {
+                  "title": { "type": "string", "maxLength": 14 },
+                  "desc": { "type": "string", "maxLength": 44 }
+                }
+              }
+            }
+          }
+        },
+        "outputs": {
+          "type": "array", "minItems": 3, "maxItems": 6,
+          "description": "右列业务闭环节点。推荐 4-5 个，title 统一 'XX闭环' 句式。",
+          "items": { "$ref": "#/$defs/iconNode" }
+        },
+        "side": {
+          "type": "object",
+          "required": ["title", "metrics"],
+          "additionalProperties": false,
+          "properties": {
+            "title": { "type": "string", "maxLength": 20, "description": "右栏标题，推荐 '从 X 到 Y' 句式" },
+            "copy": { "type": "string", "maxLength": 90 },
+            "metrics": {
+              "type": "array", "minItems": 3, "maxItems": 6,
+              "description": "金色指标卡。title 必须含数字；desc 推荐 '由 X 压缩/提升到 Y' 句式。",
+              "items": {
+                "type": "object",
+                "required": ["title", "desc"],
+                "additionalProperties": false,
+                "properties": {
+                  "title": { "type": "string", "maxLength": 16 },
+                  "desc": { "type": "string", "maxLength": 48 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "paneEvidence": {
+      "type": "object",
+      "description": "案例实证：左实证链路 + 中视频/大图证据 + 右截图 2×2 + 底部价值条",
+      "required": ["head"],
+      "additionalProperties": false,
+      "properties": {
+        "layout": { "const": "evidence", "description": "内置版式（可省略，evidence 默认即此）" },
+        "label": { "type": "string", "maxLength": 6 },
+        "head": {
+          "type": "object",
+          "required": ["title"],
+          "additionalProperties": false,
+          "properties": {
+            "title": { "type": "string", "maxLength": 40 },
+            "desc": { "type": "string", "maxLength": 90 }
+          }
+        },
+        "logic": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "title": { "type": "string", "maxLength": 10, "description": "缺省 '实证链路'" },
+            "copy": { "type": "string", "maxLength": 48 },
+            "steps": {
+              "type": "array", "minItems": 3, "maxItems": 5,
+              "items": {
+                "type": "object",
+                "required": ["title", "desc"],
+                "additionalProperties": false,
+                "properties": {
+                  "title": { "type": "string", "maxLength": 10 },
+                  "desc": { "type": "string", "maxLength": 45 }
+                }
+              }
+            }
+          }
+        },
+        "videos": {
+          "type": "array", "maxItems": 2,
+          "description": "视频证据（0-2 条）。没有视频时改用 hero。",
+          "items": {
+            "type": "object",
+            "required": ["src", "title"],
+            "additionalProperties": false,
+            "properties": {
+              "src": { "type": "string", "description": "相对输出 HTML 的路径" },
+              "poster": { "type": "string" },
+              "tag": { "type": "string", "maxLength": 20, "description": "如 'VIDEO 01 · 安全管理'" },
+              "title": { "type": "string", "maxLength": 24 },
+              "desc": { "type": "string", "maxLength": 90 }
+            }
+          }
+        },
+        "hero": {
+          "type": "object",
+          "description": "无视频时的中央大图（点击放大）",
+          "required": ["image"],
+          "additionalProperties": false,
+          "properties": {
+            "image": { "type": "string" },
+            "full": { "type": "string", "description": "灯箱大图，缺省同 image" },
+            "caption": { "type": "string", "maxLength": 40 }
+          }
+        },
+        "shots": {
+          "type": "array", "maxItems": 6,
+          "description": "截图证据卡，推荐正好 4 张（2×2）",
+          "items": {
+            "type": "object",
+            "required": ["image", "title"],
+            "additionalProperties": false,
+            "properties": {
+              "image": { "type": "string" },
+              "full": { "type": "string" },
+              "title": { "type": "string", "maxLength": 12 },
+              "desc": { "type": "string", "maxLength": 30 },
+              "caption": { "type": "string", "maxLength": 40, "description": "灯箱说明，缺省用 title" }
+            }
+          }
+        },
+        "values": {
+          "type": "array", "maxItems": 4,
+          "description": "底部价值条，推荐正好 4 格",
+          "items": {
+            "type": "object",
+            "required": ["title", "desc"],
+            "additionalProperties": false,
+            "properties": {
+              "title": { "type": "string", "maxLength": 10 },
+              "desc": { "type": "string", "maxLength": 40 }
+            }
+          }
+        }
+      }
+    },
+    "colTitle": {
+      "type": "object",
+      "required": ["zh"],
+      "additionalProperties": false,
+      "properties": {
+        "zh": { "type": "string", "maxLength": 12 },
+        "en": { "type": "string", "maxLength": 32 }
+      }
+    },
+    "iconNode": {
+      "type": "object",
+      "required": ["title"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "maxLength": 12 },
+        "desc": { "type": "string", "maxLength": 26 },
+        "icon": { "type": "string", "maxLength": 2, "description": "单字图标，如 气/电/控" }
+      }
+    }
+  }
+}

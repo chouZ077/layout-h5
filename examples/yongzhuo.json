@@ -1,0 +1,510 @@
+{
+  "doc_title": "客户B集团 生产智析专家案例",
+  "brand": "客户B集团 × Aily｜生产智析专家",
+  "initial": "before",
+  "links": [
+    {
+      "label": "原始案例",
+      "href": "https://example.com/cases/customer-b"
+    }
+  ],
+  "header": {
+    "title": "客户B集团：让产线从“经验黑箱”走向“AI 智析闭环”",
+    "sub": "围绕班组长、产线主管、工厂负责人三层角色，Aily 把生产 MES 数据转成风险识别、飞书任务、MES 回传和日报周报，让产线生产从“经验判断”进入“智能闭环”。"
+  },
+  "panes": {
+    "before": {
+      "layout": "column-network",
+      "columns": [
+        {
+          "title": "数据现状",
+          "en": "Stored Data",
+          "items": [
+            {
+              "key": "raw",
+              "title": "原料数据",
+              "desc": "成分 / 质量 / 批次",
+              "icon": "料"
+            },
+            {
+              "key": "furnace",
+              "title": "炉况参数",
+              "desc": "温度 / 压力 / 透气性",
+              "icon": "炉"
+            },
+            {
+              "key": "eval",
+              "title": "评价数据",
+              "desc": "健康度 / 班组评分",
+              "icon": "评"
+            },
+            {
+              "key": "anomaly",
+              "title": "异常记录",
+              "desc": "波动 / 休风 / 处置",
+              "icon": "异"
+            },
+            {
+              "key": "weekly",
+              "title": "人工周报",
+              "desc": "每周编制 / 维度有限",
+              "icon": "报",
+              "variant": "warn"
+            }
+          ]
+        },
+        {
+          "title": "经验判断",
+          "en": "Human Judgment",
+          "items": [
+            {
+              "key": "shift",
+              "group": true,
+              "title": "班组长交接班",
+              "desc": "18 个班组 / 三班轮转",
+              "icon": "工",
+              "children": [
+                {
+                  "title": "逐项翻记录",
+                  "desc": "纸质、口头、异常项人工梳理"
+                },
+                {
+                  "title": "经验口径不稳定",
+                  "desc": "同炉况不同人判断偏差 20%+"
+                }
+              ]
+            },
+            {
+              "key": "dispatch",
+              "group": true,
+              "title": "产线主管调度处置",
+              "desc": "工艺 / 生产 / 设备科",
+              "icon": "炉",
+              "children": [
+                {
+                  "title": "异常靠电话纸单",
+                  "desc": "通知、确认、追踪分散线下"
+                },
+                {
+                  "title": "责任状态难追踪",
+                  "desc": "是否处理、由谁处理缺闭环"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "人工流转",
+          "en": "Manual Handoff",
+          "items": [
+            {
+              "key": "noanalysis",
+              "title": "数据只存不析",
+              "desc": "MES 数据没持续转成风险项",
+              "variant": "sys"
+            },
+            {
+              "key": "handoff",
+              "title": "任务靠人派发",
+              "desc": "电话/口头/纸单，责任难追",
+              "variant": "sys"
+            },
+            {
+              "key": "report8h",
+              "title": "周报 8 小时",
+              "desc": "人工编制，趋势已滞后",
+              "variant": "sys"
+            }
+          ]
+        },
+        {
+          "title": "业务后果",
+          "en": "Business Impact",
+          "items": [
+            {
+              "key": "stability",
+              "title": "生产稳定性损失",
+              "desc": "非计划休风、炉温波动影响产量",
+              "icon": "损"
+            },
+            {
+              "key": "decision",
+              "title": "决策效率损失",
+              "desc": "错失原料调整最佳窗口",
+              "icon": "决",
+              "variant": "warn"
+            },
+            {
+              "key": "knowledge",
+              "title": "经验复制困难",
+              "desc": "老师傅经验难传承，新人难复用",
+              "icon": "知"
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "raw",
+          "to": "shift",
+          "kind": "flow"
+        },
+        {
+          "from": "furnace",
+          "to": "shift",
+          "kind": "flow"
+        },
+        {
+          "from": "shift",
+          "to": "dispatch",
+          "kind": "flow"
+        },
+        {
+          "from": "dispatch",
+          "to": "handoff",
+          "kind": "flow"
+        },
+        {
+          "from": "anomaly",
+          "to": "dispatch",
+          "kind": "flow"
+        },
+        {
+          "from": "weekly",
+          "to": "report8h",
+          "kind": "data"
+        },
+        {
+          "from": "noanalysis",
+          "to": "decision",
+          "kind": "flow"
+        },
+        {
+          "from": "handoff",
+          "to": "stability",
+          "kind": "flow"
+        },
+        {
+          "from": "report8h",
+          "to": "decision",
+          "kind": "data"
+        },
+        {
+          "from": "eval",
+          "to": "knowledge",
+          "kind": "data"
+        }
+      ],
+      "breakpoints": [
+        {
+          "key": "blackbox",
+          "label": "数据断点",
+          "between": [
+            "furnace",
+            "shift"
+          ],
+          "related": [
+            "raw",
+            "furnace",
+            "eval",
+            "anomaly"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 01 · 数据断点",
+            "title": "数据存下来了，为什么不能判？",
+            "summary": "生产数据和生产经验之间没有 AI 分析层，数据停在“可查”而非“可判”。",
+            "chain": {
+              "from": "只存不析",
+              "to": "响应滞后"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "MES 持续记录炉况、原料、评价、异常，但没有持续转成风险判断与关注项。"
+              },
+              {
+                "label": "业务影响",
+                "text": "异常要靠人发现、靠经验解释，炉况恢复慢，错失原料调整和处置窗口。"
+              },
+              {
+                "label": "关键后果",
+                "text": "生产稳定性受非计划休风和炉温波动影响，数据的价值停在可查。"
+              }
+            ]
+          }
+        },
+        {
+          "key": "handoff",
+          "label": "执行断点",
+          "between": [
+            "shift",
+            "handoff"
+          ],
+          "related": [
+            "shift",
+            "dispatch",
+            "handoff"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 02 · 执行断点",
+            "title": "异常发现了，为什么落不到人？",
+            "summary": "风险信号没有自动转成任务和责任，仍靠电话、纸单和口头在线下流转。",
+            "chain": {
+              "from": "人工派发",
+              "to": "责任难追"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "班组长交接、产线主管调度之间没有线上任务编排，异常通知、确认、追踪分散线下。"
+              },
+              {
+                "label": "业务影响",
+                "text": "任务是否处理、由谁处理缺少闭环，处置过程难以追踪和复盘。"
+              },
+              {
+                "label": "关键后果",
+                "text": "响应链路长，现场处置依赖个人推动，稳定性和效率都受影响。"
+              }
+            ]
+          }
+        },
+        {
+          "key": "report",
+          "label": "决策断点",
+          "between": [
+            "report8h",
+            "decision"
+          ],
+          "related": [
+            "weekly",
+            "report8h",
+            "decision"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 03 · 决策断点",
+            "title": "周报做出来了，为什么决策还是慢？",
+            "summary": "周报人工编制约 8 小时、维度有限，管理层看到趋势时已经滞后。",
+            "chain": {
+              "from": "人工编报",
+              "to": "趋势滞后"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "经营趋势靠人工汇总，维度受限，无法实时反映炉况与处置的最新状态。"
+              },
+              {
+                "label": "业务影响",
+                "text": "管理层看到的是滞后的结果，错失原料调整和工艺优化的最佳窗口。"
+              },
+              {
+                "label": "关键后果",
+                "text": "决策效率损失，好的处置经验难以快速反馈到下一轮生产。"
+              }
+            ]
+          }
+        },
+        {
+          "key": "knowledge",
+          "label": "沉淀断点",
+          "between": [
+            "eval",
+            "knowledge"
+          ],
+          "related": [
+            "eval",
+            "anomaly",
+            "knowledge"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 04 · 沉淀断点",
+            "title": "处置完了，为什么沉不下来？",
+            "summary": "炉况处置和异常经验没有沉淀成可复用病例，老师傅经验难传承。",
+            "chain": {
+              "from": "经验在人",
+              "to": "难以复制"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "评价数据和异常处置没有结构化进病例库，经验留在少数老师傅脑中。"
+              },
+              {
+                "label": "业务影响",
+                "text": "相似炉况再次出现时无法直接复用历史判断，新人很难稳定接住复杂工况。"
+              },
+              {
+                "label": "关键后果",
+                "text": "组织没有形成可训练、可追踪、可复用的产线生产知识资产。"
+              }
+            ]
+          }
+        }
+      ],
+      "legend": [
+        {
+          "kind": "flow",
+          "label": "人工推进"
+        },
+        {
+          "kind": "data",
+          "label": "弱数据关联"
+        }
+      ]
+    },
+    "after": {
+      "layout": "journey",
+      "rail": [
+        "班前 / 交接",
+        "班中 / 风险",
+        "处置 / 回传",
+        "日周 / 复盘"
+      ],
+      "cards": [
+        {
+          "eyebrow": "产线班组长 · 基层执行",
+          "title": "交接班先看 AI 摘要",
+          "before": "人工翻纸质记录和口头说明，逐项梳理炉况、异常和待跟进问题。",
+          "after": "Aily 自动整合当班数据，提取异常参数和风险关注项，交接只需核对重点。",
+          "shot": {
+            "image": "assets/source/sample-b-07.gif",
+            "caption": "班组长交接班：AI 生成风险关注项",
+            "note": "交接班从人工整理变成重点核对。"
+          }
+        },
+        {
+          "eyebrow": "产线主管 · 管调度",
+          "title": "风险项自动变成任务",
+          "before": "异常发现后靠电话、口头或纸质单据通知，责任不清、过程难追踪。",
+          "after": "风险信号自动转成飞书任务，含风险描述、AI 结论和关联数据，派到负责人。",
+          "shot": {
+            "image": "assets/source/sample-b-11.png",
+            "caption": "Aily 生产助手：识别风险并创建飞书任务",
+            "note": "风险识别后直接生成飞书任务。"
+          }
+        },
+        {
+          "eyebrow": "执行负责人 · 现场处理",
+          "title": "行动项回到 MES 闭环",
+          "before": "任务下发后靠人追问，处理结果散落在群聊和线下记录里。",
+          "after": "负责人确认行动项，完成状态和责任字段回传 MES，处置过程可追踪。",
+          "shot": {
+            "image": "assets/source/sample-b-13.png",
+            "caption": "MES 生产系统：行动项、负责人、状态回传",
+            "note": "任务不是通知完就结束，而是回到生产系统。"
+          }
+        },
+        {
+          "eyebrow": "炼铁工厂负责人 · 看全局",
+          "title": "日报周报自动成决策材料",
+          "before": "每周人工编报约 8 小时，维度有限，管理层看到趋势已经滞后。",
+          "after": "日报自动下发，周报从 8 小时压缩到 0.5 小时，病例进入知识沉淀。",
+          "shot": {
+            "image": "assets/source/sample-b-20.gif",
+            "caption": "每日下发日报与管理层报告",
+            "note": "经营判断从等周报变成看趋势。"
+          }
+        }
+      ],
+      "side": {
+        "title": "客户B主表达：三层角色闭环",
+        "copy": "不只是系统集成，而是把老师傅经验、生产调度和管理决策都接进 Aily 生产智析专家。",
+        "metrics": [
+          {
+            "title": "6 条产线",
+            "desc": "Aily 覆盖 6 条产线的生产生产数据。"
+          },
+          {
+            "title": "周报 8h→0.5h",
+            "desc": "日报自动下发，周报从 8 小时压缩到 0.5 小时。"
+          },
+          {
+            "title": "响应提速 83%",
+            "desc": "异常识别到任务派发显著提速。"
+          },
+          {
+            "title": "年省 2250 工时",
+            "desc": "年节约成本 256 万，年省工时 2250 小时。"
+          }
+        ]
+      }
+    },
+    "evidence": {
+      "head": {
+        "title": "案例实证：用真实系统截图证明“生产智析闭环”已经跑起来",
+        "desc": "按 流程设计 → 风险识别 → 飞书任务 → MES 回传 → 报告沉淀 的证据链组织素材，点击截图可放大。"
+      },
+      "logic": {
+        "title": "实证逻辑",
+        "copy": "从业务链路而不是截图堆叠出发。",
+        "steps": [
+          {
+            "title": "MES 供数",
+            "desc": "生产一体化系统通过 MCP 提供生产数据。"
+          },
+          {
+            "title": "AI 识别",
+            "desc": "Aily 分析炉况、识别风险和关注项。"
+          },
+          {
+            "title": "任务执行",
+            "desc": "风险转飞书任务，负责人确认与完成。"
+          },
+          {
+            "title": "报告复盘",
+            "desc": "日报、周报和病例库沉淀为管理资产。"
+          }
+        ]
+      },
+      "hero": {
+        "image": "assets/source/sample-b-03.png",
+        "caption": "解决方案流程图：每日任务与每周任务的全链路闭环"
+      },
+      "shots": [
+        {
+          "image": "assets/source/sample-b-whiteboard.jpg",
+          "title": "整体方案",
+          "desc": "生产智析专家整体方案画板。",
+          "caption": "文档画板：生产智析专家整体方案"
+        },
+        {
+          "image": "assets/source/sample-b-11.png",
+          "title": "风险转任务",
+          "desc": "Aily 识别风险并创建飞书任务。",
+          "caption": "Aily 生产助手：识别风险并创建飞书任务"
+        },
+        {
+          "image": "assets/source/sample-b-13.png",
+          "title": "MES 回传",
+          "desc": "行动项、负责人、状态回传 MES。",
+          "caption": "MES 生产系统：行动项与责任字段回传"
+        },
+        {
+          "image": "assets/source/sample-b-19.png",
+          "title": "产线主管评分",
+          "desc": "产线主管工作评分与管理视图。",
+          "caption": "产线主管工作评分与管理视图"
+        }
+      ],
+      "values": [
+        {
+          "title": "256 万",
+          "desc": "年节约成本约 256 万元。"
+        },
+        {
+          "title": "2250 工时",
+          "desc": "年节省工时约 2250 小时。"
+        },
+        {
+          "title": "响应 83%",
+          "desc": "异常识别到处置显著提速。"
+        },
+        {
+          "title": "6 条产线",
+          "desc": "Aily 覆盖 6 条产线生产数据。"
+        }
+      ]
+    }
+  }
+}

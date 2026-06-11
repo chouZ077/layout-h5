@@ -1,0 +1,491 @@
+{
+  "doc_title": "客户D汽车 数字员工A 数字员工案例",
+  "brand": "CUSTOMER D × 飞书｜自动化平台 数字员工A",
+  "initial": "before",
+  "links": [],
+  "header": {
+    "title": "客户D汽车示例整车工厂：把工厂价值链接成一张 AI 运营网络",
+    "sub": "示例整车工厂的 AI 价值不是单点自动化，而是把订单、生产、仓储、质量、安全、设备等业务节点拉到同一张运营网络里，由数字员工数字员工A持续拉通。"
+  },
+  "panes": {
+    "before": {
+      "layout": "column-network",
+      "columns": [
+        {
+          "title": "业务数据源",
+          "en": "Business Inputs",
+          "items": [
+            {
+              "key": "order",
+              "title": "订单与交付",
+              "desc": "订单 / ERP / 交付优先级",
+              "icon": "订"
+            },
+            {
+              "key": "prod",
+              "title": "生产节拍",
+              "desc": "排产 / 上线 / 下线 / 调试",
+              "icon": "产"
+            },
+            {
+              "key": "wms",
+              "title": "仓储物料",
+              "desc": "库存 / 物料 / 仓储状态",
+              "icon": "仓"
+            },
+            {
+              "key": "qa",
+              "title": "质量响应",
+              "desc": "质量 / 响应 / 批次问题",
+              "icon": "质"
+            },
+            {
+              "key": "safe",
+              "title": "安全能碳",
+              "desc": "巡检 / 能耗 / 环境风险",
+              "icon": "安"
+            }
+          ]
+        },
+        {
+          "title": "人工协同链路",
+          "en": "Manual Handoff",
+          "items": [
+            {
+              "key": "report",
+              "group": true,
+              "title": "人工翻数拼日报",
+              "icon": "1",
+              "children": [
+                {
+                  "title": "跨系统查数",
+                  "desc": "订单、生产、仓储、质量逐项翻"
+                },
+                {
+                  "title": "人工拼日报",
+                  "desc": "汇总后才到管理层，已是延迟数据"
+                }
+              ]
+            },
+            {
+              "key": "chase",
+              "group": true,
+              "title": "群内追问与催办",
+              "icon": "2",
+              "children": [
+                {
+                  "title": "靠人发起",
+                  "desc": "问题靠人催办、责任人易断"
+                },
+                {
+                  "title": "回执难追",
+                  "desc": "信息流不等于执行流"
+                }
+              ]
+            },
+            {
+              "key": "review",
+              "group": true,
+              "title": "会后复盘补齐",
+              "icon": "3",
+              "children": [
+                {
+                  "title": "晨会再解释",
+                  "desc": "异常多在事后复盘里被重新解释"
+                },
+                {
+                  "title": "经验留在人",
+                  "desc": "难沉淀成可复用资产"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "现场资源",
+          "en": "Factory Resources",
+          "items": [
+            {
+              "key": "assembly",
+              "title": "总装车间",
+              "desc": "上线下线 / 节拍调整",
+              "icon": "车"
+            },
+            {
+              "key": "material",
+              "title": "仓储与物料",
+              "desc": "库存波动 / 缺料风险",
+              "icon": "料"
+            },
+            {
+              "key": "quality",
+              "title": "质量响应组",
+              "desc": "异常分析 / 处理闭环",
+              "icon": "检"
+            },
+            {
+              "key": "env",
+              "title": "安全环境",
+              "desc": "夜间巡检 / 春节值守",
+              "icon": "巡"
+            },
+            {
+              "key": "device",
+              "title": "设备与 IT",
+              "desc": "机房 / 设备 / 能耗巡检",
+              "icon": "维"
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "order",
+          "to": "report",
+          "kind": "flow"
+        },
+        {
+          "from": "prod",
+          "to": "report",
+          "kind": "flow"
+        },
+        {
+          "from": "qa",
+          "to": "chase",
+          "kind": "flow"
+        },
+        {
+          "from": "safe",
+          "to": "review",
+          "kind": "flow"
+        },
+        {
+          "from": "report",
+          "to": "assembly",
+          "kind": "data"
+        },
+        {
+          "from": "chase",
+          "to": "quality",
+          "kind": "data"
+        },
+        {
+          "from": "review",
+          "to": "env",
+          "kind": "data"
+        }
+      ],
+      "breakpoints": [
+        {
+          "key": "caliber",
+          "label": "口径不统一",
+          "between": [
+            "qa",
+            "report"
+          ],
+          "related": [
+            "order",
+            "prod",
+            "wms",
+            "qa",
+            "report"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 01 · 输入断点",
+            "title": "数据都在，为什么口径不统一？",
+            "summary": "订单、生产、仓储、质量各自成表，日报需要跨系统翻数，管理层看到的是延迟汇总。",
+            "chain": {
+              "from": "数据分散",
+              "to": "判断滞后"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "多业务数据散落在不同系统和表里，没有进入同一张实时运营视图。"
+              },
+              {
+                "label": "业务影响",
+                "text": "同一异常要反复确认哪个点位、什么设备、什么风险、归谁处理。"
+              },
+              {
+                "label": "关键后果",
+                "text": "经营判断被拉长，问题暴露时间增加，责任追踪缺统一依据。"
+              }
+            ]
+          }
+        },
+        {
+          "key": "exec",
+          "label": "执行流断点",
+          "between": [
+            "chase",
+            "quality"
+          ],
+          "related": [
+            "chase",
+            "quality",
+            "assembly"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 02 · 执行断点",
+            "title": "信息到群里，为什么执行还要靠催？",
+            "summary": "问题被发现后，责任人、处理动作和回执依赖人工追问，信息流不等于执行流。",
+            "chain": {
+              "from": "人工催办",
+              "to": "执行延迟"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "异常触发后没有自动匹配责任人和处置链路，仍靠电话、群消息推动。"
+              },
+              {
+                "label": "业务影响",
+                "text": "处置进度散在不同沟通渠道，管理层看到的是滞后的结果。"
+              },
+              {
+                "label": "关键后果",
+                "text": "任务是否启动、是否闭环难追踪，协同停在“大家知道了”。"
+              }
+            ]
+          }
+        },
+        {
+          "key": "gap",
+          "label": "关键时段断档",
+          "between": [
+            "review",
+            "env"
+          ],
+          "related": [
+            "safe",
+            "review",
+            "env"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 03 · 时段断点",
+            "title": "夜间和节假日，为什么要人力兜底？",
+            "summary": "安全巡检、设备状态和异常风险在夜间、春节等关键时段更容易断档。",
+            "chain": {
+              "from": "人力值守",
+              "to": "风险暴露"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "关键时段缺少能持续识别风险并形成判断的数字员工，简单报警难替代业务判断。"
+              },
+              {
+                "label": "业务影响",
+                "text": "设备带灯、积水、违章操作等风险要靠人盯，夜间响应慢。"
+              },
+              {
+                "label": "关键后果",
+                "text": "复盘经验难沉淀，下一次关键时段仍需重新靠人兜底。"
+              }
+            ]
+          }
+        }
+      ],
+      "legend": [
+        {
+          "kind": "flow",
+          "label": "人工推进"
+        },
+        {
+          "kind": "data",
+          "label": "事后回流"
+        }
+      ]
+    },
+    "after": {
+      "layout": "hub-3col",
+      "columns": {
+        "inputs": {
+          "zh": "业务数据源",
+          "en": "Business Inputs"
+        },
+        "hub": {
+          "zh": "AI 运营网络",
+          "en": "AI Operating Network"
+        },
+        "outputs": {
+          "zh": "现场闭环",
+          "en": "Factory Loop"
+        }
+      },
+      "inputs": [
+        {
+          "title": "订单与交付",
+          "desc": "订单 / ERP / 交付优先级",
+          "icon": "订"
+        },
+        {
+          "title": "生产节拍",
+          "desc": "排产 / 上线 / 下线 / 调试",
+          "icon": "产"
+        },
+        {
+          "title": "仓储物料",
+          "desc": "库存 / 物料 / 仓储状态",
+          "icon": "仓"
+        },
+        {
+          "title": "质量响应",
+          "desc": "质量 / 响应 / 批次问题",
+          "icon": "质"
+        },
+        {
+          "title": "安全能碳",
+          "desc": "巡检 / 能耗 / 环境风险",
+          "icon": "安"
+        }
+      ],
+      "hub": {
+        "core": {
+          "title": "数字员工A 数字员工",
+          "desc": "1+N+X 数据底座 + AI 判断 + 飞书群协同"
+        },
+        "cells": [
+          {
+            "title": "运营中枢层",
+            "desc": "工厂运营日报、数字运营调度中心，全局穿透的运营视图。"
+          },
+          {
+            "title": "部门节点层",
+            "desc": "生产/质量/设备/仓储/安全/能碳，多业务线横向协同。"
+          },
+          {
+            "title": "岗位末梢层",
+            "desc": "1000+ 张业务表，员工填报即所用。"
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "title": "经营判断闭环",
+          "desc": "订单/生产/仓储/质量进入同一运营视图。",
+          "icon": "判"
+        },
+        {
+          "title": "信息变执行闭环",
+          "desc": "AI @ 责任人、催办任务、追踪回执。",
+          "icon": "执"
+        },
+        {
+          "title": "质量响应闭环",
+          "desc": "异常分析到处理闭环可追踪。",
+          "icon": "检"
+        },
+        {
+          "title": "关键时段闭环",
+          "desc": "夜间、春节识别风险并形成判断。",
+          "icon": "巡"
+        },
+        {
+          "title": "经验沉淀闭环",
+          "desc": "处置过程沉淀为可复用运营资产。",
+          "icon": "知"
+        }
+      ],
+      "side": {
+        "title": "从“看见问题”到“推动闭环”",
+        "copy": "这张图表达的不是系统清单，而是工厂里真实的协作密度：多业务数据、多部门节点、多现场资源，被同一个 AI 运营节点持续拉通。",
+        "metrics": [
+          {
+            "title": "1+N+X 数据底座",
+            "desc": "运营中枢、部门节点、岗位末梢三层贯通。"
+          },
+          {
+            "title": "1000+ 张业务表",
+            "desc": "员工填报即所用，岗位末梢直接进底座。"
+          },
+          {
+            "title": "24h 关键时段",
+            "desc": "夜间与节假日风险仍能被识别并形成判断。"
+          },
+          {
+            "title": "1 个数字员工",
+            "desc": "数字员工A统一承接问数、判断、催办与复盘。"
+          }
+        ]
+      }
+    },
+    "evidence": {
+      "head": {
+        "title": "案例实证：数字员工如何嵌入真实业务价值链",
+        "desc": "把真实截图按业务逻辑串起来：数字员工如何接入系统、压缩人工流程、推动现场闭环，并把一次次处理沉淀成可复用的运营资产。"
+      },
+      "logic": {
+        "title": "数字员工价值链",
+        "copy": "从系统接入到现场回流，形成一条可追踪的链路。",
+        "steps": [
+          {
+            "title": "系统接入",
+            "desc": "业务系统、数据集成、基座与数字员工放到同一执行链。"
+          },
+          {
+            "title": "全局判断",
+            "desc": "运营驾驶舱把跨系统翻数压缩成一张运营视图。"
+          },
+          {
+            "title": "风险识别",
+            "desc": "现场画面被转译为风险等级、明细和建议动作。"
+          },
+          {
+            "title": "执行回流",
+            "desc": "群内回执与现场巡检结果持续回流为业务记录。"
+          }
+        ]
+      },
+      "hero": {
+        "image": "assets/cases/dashboard.jpg",
+        "caption": "运营驾驶舱：扫码率、符合率、趋势和明细在同一视图"
+      },
+      "shots": [
+        {
+          "image": "assets/cases/architecture.jpg",
+          "title": "系统接入",
+          "desc": "业务系统、数据集成、基座连成同一执行链。",
+          "caption": "应用架构接入业务链路"
+        },
+        {
+          "image": "assets/cases/trend.jpg",
+          "title": "过程监控",
+          "desc": "关键工艺指标与阈值持续记录成趋势。",
+          "caption": "工艺 STD 看板：过程指标持续沉淀"
+        },
+        {
+          "image": "assets/cases/safety.jpg",
+          "title": "安全巡检",
+          "desc": "现场画面转译为风险等级与建议动作。",
+          "caption": "春节夜间巡检：关键时段安全不断档"
+        },
+        {
+          "image": "assets/cases/reply.jpg",
+          "title": "群内回执",
+          "desc": "风险建议拆成责任人能执行、能回复的动作。",
+          "caption": "群内协同形成明确回执"
+        }
+      ],
+      "values": [
+        {
+          "title": "流程压缩",
+          "desc": "跨系统翻数拼报表，变为数字员工直接取数推送。"
+        },
+        {
+          "title": "判断增强",
+          "desc": "指标趋势、现场图像、风险等级在关键时段持续识别。"
+        },
+        {
+          "title": "价值沉淀",
+          "desc": "责任人、建议动作、回执和现场结果沉淀为可复盘资产。"
+        },
+        {
+          "title": "关键时段",
+          "desc": "夜间与节假日巡检由 AI 先判断再推人。"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,565 @@
+{
+  "doc_title": "客户A集团 AI 全维监测系统深度案例",
+  "brand": "CUSTOMER A × 飞书｜智创先锋队",
+  "initial": "before",
+  "links": [
+    {
+      "label": "原始案例",
+      "href": "https://example.com/cases/customer-a"
+    }
+  ],
+  "header": {
+    "title": "围绕重大危险区与自动化设备，构建 AI 全维监测闭环",
+    "sub": "客户A集团的 AI 价值，不是单点报警，而是把气体浓度、UPS、PLC、DCS、高压软启、人员行为等 2111 个监测点接入同一条安全与设备管理链路。"
+  },
+  "panes": {
+    "before": {
+      "banner": {
+        "icon": "安",
+        "title": "安全与设备管理旧链路",
+        "desc": "从现场发现到层级上报、现场排查、台账复盘，核心问题不是没有数据，而是数据没有实时进入同一条治理链。"
+      },
+      "stages": [
+        "G1 现场发现",
+        "G2 层级上报",
+        "G3 现场处置",
+        "G4 复盘沉淀"
+      ],
+      "lanes": [
+        "现场风险",
+        "治理动作",
+        "复盘资产"
+      ],
+      "nodes": [
+        {
+          "key": "gas",
+          "title": "气体报警器",
+          "desc": "浓度异常 / 区域位置",
+          "icon": "气",
+          "stage": 0,
+          "lane": 0
+        },
+        {
+          "key": "dispatch",
+          "title": "调度员",
+          "desc": "电话 / 微信 / 逐级通知",
+          "icon": "调",
+          "stage": 1,
+          "lane": 0,
+          "dim": true
+        },
+        {
+          "key": "repair",
+          "title": "现场检修",
+          "desc": "工作票 / 检修方案 / 工具电脑",
+          "icon": "修",
+          "stage": 2,
+          "lane": 0,
+          "dim": true
+        },
+        {
+          "key": "report",
+          "title": "复盘报告",
+          "desc": "事后整理 / 经验记录",
+          "icon": "报",
+          "stage": 3,
+          "lane": 0,
+          "dim": true
+        },
+        {
+          "key": "plc",
+          "title": "PLC / DCS",
+          "desc": "卡件异常 / CPU 冗余 / 通讯故障",
+          "icon": "控",
+          "stage": 0,
+          "lane": 1
+        },
+        {
+          "key": "engineer",
+          "title": "工艺负责人",
+          "desc": "确认现场 / 判断影响",
+          "icon": "工",
+          "stage": 1,
+          "lane": 1
+        },
+        {
+          "key": "cabinet",
+          "title": "开柜排查",
+          "desc": "进入现场 / 背电脑通讯",
+          "icon": "柜",
+          "stage": 2,
+          "lane": 1,
+          "dim": true
+        },
+        {
+          "key": "ledger",
+          "title": "安全台账",
+          "desc": "人工填写 / 手工汇总",
+          "icon": "账",
+          "stage": 3,
+          "lane": 1,
+          "dim": true
+        },
+        {
+          "key": "paper",
+          "title": "纸质记录",
+          "desc": "点检表 / 报警记录 / 设备状态",
+          "icon": "纸",
+          "stage": 0,
+          "lane": 2,
+          "variant": "sys"
+        },
+        {
+          "key": "excel",
+          "title": "Excel 汇总",
+          "desc": "人工录入 / 延迟统计",
+          "icon": "表",
+          "stage": 1,
+          "lane": 2,
+          "variant": "sys",
+          "dim": true
+        },
+        {
+          "key": "expert",
+          "title": "经验判断",
+          "desc": "老师傅 / 厂家 / 历史印象",
+          "icon": "验",
+          "stage": 2,
+          "lane": 2,
+          "variant": "sys",
+          "dim": true
+        },
+        {
+          "key": "gap",
+          "title": "知识缺口",
+          "desc": "标准化 SOP 不完整",
+          "icon": "知",
+          "stage": 3,
+          "lane": 2,
+          "variant": "sys",
+          "dim": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "gas",
+          "to": "dispatch",
+          "kind": "flow"
+        },
+        {
+          "from": "dispatch",
+          "to": "repair",
+          "kind": "flow"
+        },
+        {
+          "from": "repair",
+          "to": "report",
+          "kind": "flow"
+        },
+        {
+          "from": "plc",
+          "to": "engineer",
+          "kind": "flow"
+        },
+        {
+          "from": "engineer",
+          "to": "cabinet",
+          "kind": "flow"
+        },
+        {
+          "from": "cabinet",
+          "to": "ledger",
+          "kind": "flow"
+        },
+        {
+          "from": "gas",
+          "to": "paper",
+          "kind": "data"
+        },
+        {
+          "from": "dispatch",
+          "to": "excel",
+          "kind": "data"
+        },
+        {
+          "from": "repair",
+          "to": "expert",
+          "kind": "data"
+        },
+        {
+          "from": "report",
+          "to": "gap",
+          "kind": "data"
+        },
+        {
+          "from": "paper",
+          "to": "gap",
+          "kind": "data"
+        }
+      ],
+      "breakpoints": [
+        {
+          "key": "p1",
+          "label": "隐患上来了，描述不统一",
+          "between": [
+            "gas",
+            "engineer"
+          ],
+          "related": [
+            "gas",
+            "plc",
+            "paper"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 01 · 输入断点",
+            "title": "隐患上来了，为什么描述不统一？",
+            "summary": "现场并不缺报警和记录，缺的是把报警点位、设备、位置、风险类型统一成同一套业务对象。",
+            "chain": {
+              "from": "数据散落",
+              "to": "安全经理二次确认"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "气体报警、PLC/DCS、纸质点检和电脑端记录各自成表，口径不一致，隐患无法直接进入一张实时视图。"
+              },
+              {
+                "label": "业务影响",
+                "text": "同一个异常需要反复确认“哪个点位、什么设备、什么风险等级、归谁处理”，信息到达不等于可以执行。"
+              },
+              {
+                "label": "关键后果",
+                "text": "安全响应被拉长，重大危险区风险暴露时间增加，后续责任追踪也缺少统一依据。"
+              }
+            ]
+          }
+        },
+        {
+          "key": "p2",
+          "label": "逐级传递，责任链慢",
+          "between": [
+            "dispatch",
+            "engineer"
+          ],
+          "related": [
+            "dispatch",
+            "engineer",
+            "excel"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 02 · 传递断点",
+            "title": "逐级传递，为什么责任链慢？",
+            "summary": "异常触发后没有自动匹配责任人、工艺负责人和处置链路，信息流仍靠人逐级推动。",
+            "chain": {
+              "from": "人工找人",
+              "to": "执行延迟"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "调度员、工艺负责人、安全经理和检修人员之间没有自动编排的通知规则，仍依赖电话、微信和口头同步。"
+              },
+              {
+                "label": "业务影响",
+                "text": "隐患确认、责任分配、处置反馈分散在不同沟通渠道里，管理层看到的是滞后的汇总，不是实时进度。"
+              },
+              {
+                "label": "关键后果",
+                "text": "30 分钟级响应会放大异常风险，责任人虽然被通知了，但任务是否启动、是否闭环仍然难追踪。"
+              }
+            ]
+          }
+        },
+        {
+          "key": "p3",
+          "label": "现场排查，风险暴露",
+          "between": [
+            "cabinet",
+            "expert"
+          ],
+          "related": [
+            "repair",
+            "cabinet",
+            "expert"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 03 · 判断断点",
+            "title": "现场排查，为什么风险被转嫁给人？",
+            "summary": "自动化设备的故障定位仍依赖少数专家经验，系统没有先替人完成远程判断和处置建议。",
+            "chain": {
+              "from": "经验判断",
+              "to": "人员暴露"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "PLC、DCS、UPS 等设备状态没有和 AI 诊断模型、历史故障知识连接起来，原因判断靠老师傅和厂家经验。"
+              },
+              {
+                "label": "业务影响",
+                "text": "检修人员需要背电脑进现场、开柜、通讯、逐项排查，危险区里的设备问题变成了人员安全暴露。"
+              },
+              {
+                "label": "关键后果",
+                "text": "4 小时级排查拉长停机时间，也让新员工很难稳定接住复杂故障处理。"
+              }
+            ]
+          }
+        },
+        {
+          "key": "p4",
+          "label": "复盘沉淀，数据断层",
+          "between": [
+            "expert",
+            "gap"
+          ],
+          "related": [
+            "report",
+            "ledger",
+            "gap"
+          ],
+          "detail": {
+            "kicker": "BREAKPOINT 04 · 沉淀断点",
+            "title": "复盘沉淀，为什么下次还要从头问人？",
+            "summary": "故障过程、责任动作、现场证据和处置经验没有自动沉淀为可复用的台账、SOP 和知识。",
+            "chain": {
+              "from": "事后补录",
+              "to": "能力难复制"
+            },
+            "cards": [
+              {
+                "label": "根本原因",
+                "text": "复盘依赖人工整理 Excel、纸质记录和会议纪要，数据断在“处理完”之后，没有回流到下一次判断。"
+              },
+              {
+                "label": "业务影响",
+                "text": "相似故障再次出现时，系统无法直接复用历史原因、处置步骤和风险提示，只能继续问人。"
+              },
+              {
+                "label": "关键后果",
+                "text": "经验留在少数人脑中，组织没有形成可训练、可追踪、可复用的安全与设备管理资产。"
+              }
+            ]
+          }
+        }
+      ],
+      "legend": [
+        {
+          "kind": "flow",
+          "label": "人工推进"
+        },
+        {
+          "kind": "data",
+          "label": "经验回流"
+        }
+      ]
+    },
+    "after": {
+      "columns": {
+        "inputs": {
+          "zh": "现场输入",
+          "en": "Field Inputs"
+        },
+        "hub": {
+          "zh": "AI 全维监测中枢",
+          "en": "AI Monitoring Hub"
+        },
+        "outputs": {
+          "zh": "业务闭环",
+          "en": "Safety & Maintenance Loop"
+        }
+      },
+      "inputs": [
+        {
+          "title": "重大危险区气体",
+          "desc": "100 个重要气体浓度监测点",
+          "icon": "气"
+        },
+        {
+          "title": "UPS 电源",
+          "desc": "168 个重要监测点",
+          "icon": "电"
+        },
+        {
+          "title": "PLC / DCS / GDS",
+          "desc": "卡件、模块与控制系统状态",
+          "icon": "控"
+        },
+        {
+          "title": "高压软启设备",
+          "desc": "350 个高压设备监测点",
+          "icon": "启"
+        },
+        {
+          "title": "中控电脑与通讯线",
+          "desc": "30 台电脑、60 条通讯线路",
+          "icon": "网"
+        },
+        {
+          "title": "人员行为",
+          "desc": "检修、巡检与违章行为识别",
+          "icon": "人"
+        }
+      ],
+      "hub": {
+        "core": {
+          "title": "AI 全维监测系统",
+          "desc": "Scada + 物联网 + 飞书多维表格 + Aily + 工作配方 + 集成平台"
+        },
+        "cells": [
+          {
+            "title": "1 分钟数据更新",
+            "desc": "核心数据由 1 次/小时提升至 1 次/分钟，24 小时不间断点巡检。"
+          },
+          {
+            "title": "AI 自诊断与处置指南",
+            "desc": "识别异常、判断原因、生成作业风险、依据规范与标准化处置方案。"
+          },
+          {
+            "title": "多端协同告警",
+            "desc": "飞书群、短信、电话自动同步责任人，减少信息遗漏和层级传递。"
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "title": "安全管理闭环",
+          "desc": "气体异常从 30 分钟响应压缩到 3 分钟。",
+          "icon": "安"
+        },
+        {
+          "title": "设备点检闭环",
+          "desc": "人工 4 小时点检压缩到 1 分钟。",
+          "icon": "检"
+        },
+        {
+          "title": "故障检修闭环",
+          "desc": "PLC 故障定位从 4 小时压缩到 1 分钟。",
+          "icon": "修"
+        },
+        {
+          "title": "管理复盘闭环",
+          "desc": "自动记录、分类整理、生成台账和看板。",
+          "icon": "报"
+        },
+        {
+          "title": "知识沉淀闭环",
+          "desc": "历史故障案例沉淀为 AI 标准化处理指南。",
+          "icon": "知"
+        }
+      ],
+      "side": {
+        "title": "从“人工巡检”到“AI 主动看护”",
+        "copy": "这张图表达的不是系统清单，而是客户A在化工安全场景里，把现场数据、设备状态、AI 判断和责任人协同接成一条实时业务链。",
+        "metrics": [
+          {
+            "title": "2111 个监测点",
+            "desc": "覆盖 PLC、DCS、UPS、气体报警器、中控电脑、高压软启等核心设备。"
+          },
+          {
+            "title": "点检效率提升 240 倍",
+            "desc": "双人现场巡检 4 小时，压缩为 AI 1 分钟完成分析。"
+          },
+          {
+            "title": "故障处理效率提升 180 倍",
+            "desc": "设备故障依赖经验排查，变为 AI 自诊断与处置指南。"
+          },
+          {
+            "title": "节省开支 58 万",
+            "desc": "自主设计、自主创新、自行搭建，替代外采系统与人工服务。"
+          },
+          {
+            "title": "人员安全率提升 100%",
+            "desc": "危险区设备异常无需背电脑进现场排查，降低检修暴露风险。"
+          }
+        ]
+      }
+    },
+    "evidence": {
+      "head": {
+        "title": "案例实证：把“现场设备”变成“可看、可判、可推、可沉淀”的业务对象",
+        "desc": "视频不是附件，而是证据链的关键：一段证明重大危险区异常如何触发告警，一段证明 PLC 故障如何被系统识别并推送处置。"
+      },
+      "logic": {
+        "title": "实证链路",
+        "copy": "不是展示“做了哪些页面”，而是证明 AI 如何进入安全与设备管理闭环。",
+        "steps": [
+          {
+            "title": "现场数据进入",
+            "desc": "气体浓度、UPS、PLC、DCS、高压软启等核心数据进入飞书端。"
+          },
+          {
+            "title": "AI 判断异常",
+            "desc": "从看数变成自动识别、分析原因、生成处置指南。"
+          },
+          {
+            "title": "责任人被推送",
+            "desc": "飞书消息、电话等多端告警，把判断推到执行现场。"
+          },
+          {
+            "title": "结果沉淀复盘",
+            "desc": "台账、故障记录、巡检分析和知识库成为下一轮资产。"
+          }
+        ]
+      },
+      "videos": [
+        {
+          "src": "assets/videos/safety-alert.mp4",
+          "tag": "VIDEO 01 · 安全管理",
+          "title": "重大危险区气体异常，自动电话与飞书告警",
+          "desc": "用中控室氧气浓度报警器模拟重大危险区气体异常。浓度低于阈值后，系统把区域、警示信息、解决方案和责任人推送到管理人员手机端。"
+        },
+        {
+          "src": "assets/videos/plc-diagnosis.mp4",
+          "tag": "VIDEO 02 · 设备检修",
+          "title": "PLC 模块故障，不进现场也能定位问题",
+          "desc": "模拟压缩机 PLC 设备故障，系统识别故障模块位置与原因，并把处置方案同步给检修人员，减少背电脑进入现场排查。"
+        }
+      ],
+      "shots": [
+        {
+          "image": "assets/real/sample-a-15.jpg",
+          "title": "气体监测可视化",
+          "desc": "危险区数据从纸质/电脑端进入实时可视界面。",
+          "caption": "重大危险区气体监测数据可视化"
+        },
+        {
+          "image": "assets/real/sample-a-13.jpg",
+          "title": "PLC 模块可视化",
+          "desc": "过去看外观，之后能看到模块状态和异常。",
+          "caption": "飞书手机端 PLC 模块信息可视化"
+        },
+        {
+          "image": "assets/real/sample-a-21.png",
+          "title": "AI 自诊断",
+          "desc": "异常发生后自动判断原因、作业风险和建议。",
+          "caption": "AI 对故障数据进行智能化判定与自诊断"
+        },
+        {
+          "image": "assets/real/sample-a-51.png",
+          "title": "设备管理空间",
+          "desc": "故障记录、责任人和跟进状态进入闭环。",
+          "caption": "设备管理：检修人员一目了然查看故障信息"
+        }
+      ],
+      "values": [
+        {
+          "title": "1 分钟点检",
+          "desc": "核心设备从人工 4 小时巡检，压缩为 AI 分析。"
+        },
+        {
+          "title": "3 分钟响应",
+          "desc": "气体异常从约 30 分钟响应，压缩到约 3 分钟。"
+        },
+        {
+          "title": "少进危险区",
+          "desc": "PLC 故障无需背电脑进入防爆区排查，降低人员风险。"
+        },
+        {
+          "title": "沉淀知识库",
+          "desc": "故障记录与处置方案持续沉淀为标准化指南。"
+        }
+      ]
+    }
+  }
+}

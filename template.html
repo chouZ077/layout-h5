@@ -1,0 +1,1973 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Case Card</title>
+<style>
+  /* ============================================================
+     case-card-h5 — 底座 (substrate) + 内置版式目录 (layout catalog)
+     · 底座：token / stage 缩放 / 面板 chrome / 连线 / 灯箱 / 动效 —— 死冻，勿改。
+     · 内置版式：swimlane(before) / hub-3col(after) / evidence —— 填数据即用。
+     · 新视觉隐喻走 layout:"raw" 授权作图：在底座之上写，复用 CaseCard.* API，
+       别改这里。详见 SKILL.md「四层约束」与「授权作图路径」。
+     内容全部来自 <script id="case-data"> 数据岛（build.py 注入）。
+     ============================================================ */
+  :root {
+    --bg: #050814;
+    --panel: rgba(13, 28, 63, .84);
+    --line: rgba(113, 158, 255, .34);
+    --blue: #4c86ff;
+    --teal: #33d6c0;
+    --orange: #ff9a3d;
+    --amber: #ffb400;
+    --red: #ff5b7f;
+    --text: rgba(255, 255, 255, .94);
+    --muted: rgba(255, 255, 255, .64);
+    --dim: rgba(255, 255, 255, .44);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #030611;
+    color: var(--text);
+    font-family: var(--font);
+    letter-spacing: 0;
+  }
+
+  body {
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(76, 134, 255, .18), transparent 34%),
+      radial-gradient(circle at 78% 18%, rgba(51, 214, 192, .12), transparent 32%),
+      linear-gradient(135deg, #07112c 0%, #060817 48%, #02040a 100%);
+  }
+
+  .stage-shell {
+    width: calc(1920px * var(--stage-scale, 1));
+    height: calc(1080px * var(--stage-scale, 1));
+    position: relative;
+  }
+
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    position: relative;
+    padding: 48px 66px 46px;
+    overflow: hidden;
+    transform: scale(var(--stage-scale, 1));
+    transform-origin: left top;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, .026) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .brand {
+    position: absolute;
+    top: 54px;
+    right: 68px;
+    color: rgba(255, 255, 255, .68);
+    font: 850 16px/1 var(--font);
+  }
+
+  .toggle {
+    position: absolute;
+    top: 112px;
+    right: 68px;
+    z-index: 6;
+    display: flex;
+    gap: 10px;
+    padding: 6px;
+    border-radius: 999px;
+    background: rgba(8, 18, 42, .76);
+    border: 1px solid rgba(113, 158, 255, .22);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .26);
+    backdrop-filter: blur(10px);
+  }
+
+  .toggle button,
+  .toggle a {
+    height: 38px;
+    min-width: 86px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 18px;
+    color: rgba(255, 255, 255, .62);
+    background: transparent;
+    font: 850 14px/1 var(--font);
+    cursor: pointer;
+    text-decoration: none;
+    display: grid;
+    place-items: center;
+    transition: color .18s ease, background .18s ease;
+  }
+
+  .toggle a { color: rgba(155, 244, 231, .72); }
+  .toggle a:hover { color: #fff; background: rgba(51, 214, 192, .12); }
+
+  .toggle button.active {
+    color: #fff;
+    background: rgba(51, 214, 192, .16);
+    box-shadow: 0 0 22px rgba(51, 214, 192, .16);
+  }
+
+  .head { position: relative; z-index: 3; margin-bottom: 22px; }
+
+  h1 {
+    margin: 0 0 12px;
+    max-width: 1240px;
+    color: #fff;
+    font: 950 52px/1.1 var(--font);
+  }
+
+  .sub {
+    margin: 0;
+    max-width: 1260px;
+    color: var(--muted);
+    font: 650 20px/1.45 var(--font);
+  }
+
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  /* layout:"raw" 授权作图的画布：与内置版式同尺寸（可用区约 1788×820） */
+  .raw-pane { position: relative; z-index: 2; height: 820px; }
+
+  .layout {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1280px 470px;
+    gap: 30px;
+    height: 820px;
+  }
+
+  /* journey 无右栏时整幅铺满 */
+  .layout.full { grid-template-columns: 1fr; }
+  .layout.full > .side-panel { display: none; }
+
+  .map-panel,
+  .side-panel,
+  .evidence-panel {
+    border-radius: 12px;
+    border: 1px solid rgba(113, 158, 255, .22);
+    background: linear-gradient(160deg, rgba(13, 28, 63, .88), rgba(8, 14, 31, .72));
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .32);
+    overflow: hidden;
+  }
+
+  .map-panel { position: relative; padding: 28px 30px 22px; }
+
+  .map { position: relative; height: 100%; }
+
+  .side-panel {
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .side-title { margin: 0; color: #fff; font: 950 32px/1.15 var(--font); }
+  .side-copy { margin: 0; color: rgba(255,255,255,.72); font: 650 16px/1.55 var(--font); }
+
+  /* ---------- 连线（两个 pane 共用） ---------- */
+  .net-lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .net-lines path { fill: none; }
+  .net-lines path.flow { stroke: rgba(113,158,255,.42); stroke-width: 2.2; }
+  .net-lines path.data { stroke: rgba(51,214,192,.5); stroke-width: 2.2; stroke-dasharray: 8 8; }
+  .net-lines path.link { stroke: rgba(113,158,255,.3); stroke-width: 1.4; }
+  .net-lines path.hot  { stroke: rgba(255,180,0,.74); stroke-width: 2.2; stroke-dasharray: 9 9; }
+
+  /* ---------- before：泳道痛点图 ---------- */
+  .pain-scene {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: 0;
+    z-index: 3;
+    min-height: 44px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 18px;
+    background: rgba(8,18,42,.76);
+    border: 1px solid rgba(51,214,192,.26);
+    color: rgba(255,255,255,.76);
+    font: 850 15px/1.25 var(--font);
+  }
+
+  .pain-scene i {
+    font-style: normal;
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: var(--teal);
+    background: rgba(51,214,192,.14);
+  }
+
+  .pain-scene b { flex: 0 0 auto; color: #fff; }
+  .pain-scene span { color: rgba(255,255,255,.6); font-weight: 650; }
+
+  .pain-stage {
+    position: absolute;
+    z-index: 0;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(76,134,255,.075), rgba(51,214,192,.04));
+    border: 1px solid rgba(113,158,255,.12);
+  }
+
+  .pain-stage:before {
+    content: attr(data-stage);
+    position: absolute;
+    left: 12px;
+    top: 10px;
+    color: rgba(255,255,255,.34);
+    font: 850 12px/1 var(--font);
+  }
+
+  .swim {
+    position: absolute;
+    z-index: 3;
+    width: 104px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: rgba(255,255,255,.78);
+    background: rgba(255,255,255,.12);
+    font: 850 15px/1 var(--font);
+  }
+
+  .pain-node {
+    position: absolute;
+    z-index: 2;
+    min-height: 88px;
+    border-radius: 10px;
+    padding: 16px 13px;
+    background: rgba(18,38,86,.86);
+    border: 1px solid rgba(113,158,255,.3);
+    box-shadow: 0 16px 36px rgba(0,0,0,.22);
+    /* 块A·内部均衡约定：盒子比内容高时，内容垂直居中，不留底部空白 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .pain-node.dim { opacity: .45; filter: saturate(.6); }
+
+  .pain-node.sys {
+    background: rgba(51,214,192,.08);
+    border-color: rgba(51,214,192,.28);
+  }
+
+  .pain-node.warn {
+    background: rgba(72,23,37,.62);
+    border-color: rgba(255,91,127,.36);
+  }
+
+  .pain-node b {
+    display: block;
+    color: #fff;
+    font: 900 17px/1.14 var(--font);
+    margin-bottom: 8px;
+    padding-right: 30px;
+  }
+
+  .pain-node span { color: rgba(255,255,255,.55); font: 700 12px/1.25 var(--font); }
+
+  .pain-node .avatar {
+    position: absolute;
+    right: 11px;
+    top: 11px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #9bf4e7;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.18);
+    font: 950 13px/1 var(--font);
+    font-style: normal;
+  }
+
+  .pain-node.is-related {
+    opacity: 1;
+    filter: none;
+    border-color: rgba(255,180,0,.58);
+    box-shadow: 0 0 26px rgba(255,180,0,.16), 0 16px 36px rgba(0,0,0,.22);
+  }
+
+  .pain-node.is-related .avatar {
+    color: #07131c;
+    background: linear-gradient(135deg, var(--amber), var(--teal));
+    border-color: rgba(255,255,255,.22);
+  }
+
+  .pain-dot {
+    position: absolute;
+    z-index: 4;
+    border-radius: 999px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    background: rgba(255,91,127,.16);
+    border: 1px solid rgba(255,91,127,.58);
+    box-shadow: 0 0 20px rgba(255,91,127,.24);
+    font: 850 13px/1 var(--font);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+
+  .pain-dot:hover,
+  .pain-dot.active {
+    transform: translateY(-2px);
+    background: rgba(255,154,61,.2);
+    border-color: rgba(255,180,0,.82);
+    box-shadow: 0 0 28px rgba(255,180,0,.28);
+  }
+
+  .pain-dot:before {
+    content: "!";
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--red);
+    font: 950 13px/1 var(--font);
+  }
+
+  .pain-dot.active:before {
+    color: #091221;
+    background: linear-gradient(135deg, var(--amber), var(--teal));
+  }
+
+  .pain-legend {
+    position: absolute;
+    left: 6px;
+    bottom: 0;
+    z-index: 3;
+    display: flex;
+    gap: 22px;
+    color: rgba(255,255,255,.58);
+    font: 750 12px/1 var(--font);
+  }
+
+  .pain-legend i {
+    display: inline-block;
+    width: 54px;
+    height: 2px;
+    margin-right: 8px;
+    vertical-align: middle;
+    background: rgba(113,158,255,.58);
+  }
+
+  .pain-legend i.data {
+    background: transparent;
+    border-top: 2px dashed rgba(51,214,192,.72);
+  }
+
+  /* ---------- before：列式网络（column-network）。列内 flex 流式排布，不手算坐标 ---------- */
+  .cn-cols {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    gap: 0;                  /* 列与沟槽都是显式轨道（JS 设），间距由轨道宽度给 */
+    padding: 50px 4px 24px;  /* 顶部留列标题，底部收紧 */
+  }
+
+  .cn-col { position: relative; display: flex; flex-direction: column; min-width: 0; }
+
+  .cn-col-title {
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(113, 158, 255, .28);
+    color: var(--muted);
+    font: 750 14px/1 var(--font);
+    letter-spacing: .04em;
+  }
+
+  .cn-col-title span { color: var(--dim); font-weight: 500; font-size: 12px; }
+
+  .cn-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;  /* 纵向分布由规划器设 rowGap/paddingTop */
+    gap: 14px;
+    min-height: 0;
+  }
+
+  .cn-node {
+    border-radius: 10px;
+    border: 1px solid rgba(113, 158, 255, .26);
+    background: rgba(19, 43, 78, .78);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+    padding: 14px 14px 13px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .cn-node.dim, .cn-group.dim { opacity: .46; filter: saturate(.62); }
+  .cn-node.warn { border-color: rgba(255, 91, 127, .4); background: rgba(72, 23, 37, .6); }
+  .cn-node.sys { border-color: rgba(51, 214, 192, .28); background: rgba(51, 214, 192, .08); }
+
+  .cn-node b { display: block; color: #fff; font: 900 16px/1.2 var(--font); }
+  .cn-node span { display: block; margin-top: 5px; color: var(--muted); font: 650 12px/1.3 var(--font); }
+
+  .cn-node i {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: #9bf4e7;
+    border: 1px solid rgba(51, 214, 192, .42);
+    background: rgba(51, 214, 192, .12);
+    font: normal 900 13px/1 var(--font);
+    font-style: normal;
+  }
+
+  .cn-group {
+    border-radius: 12px;
+    border: 1px solid rgba(113, 158, 255, .3);
+    background: linear-gradient(150deg, rgba(31, 51, 103, .7), rgba(18, 36, 72, .7));
+    padding: 12px;
+    display: grid;
+    gap: 9px;
+  }
+
+  .cn-group-head { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+
+  .cn-group-head .num {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: var(--blue);
+    font: 950 13px/1 var(--font);
+    font-style: normal;
+  }
+
+  .cn-group-head b { display: block; color: #fff; font: 850 15px/1.2 var(--font); }
+  .cn-group-head span { display: block; margin-top: 3px; color: var(--muted); font: 650 11px/1.2 var(--font); }
+
+  .cn-sub {
+    border-radius: 8px;
+    background: rgba(20, 40, 68, .66);
+    border: 1px solid rgba(120, 180, 230, .16);
+    padding: 9px 11px;
+  }
+
+  .cn-sub b { color: rgba(255, 255, 255, .92); font: 800 13px/1.2 var(--font); }
+  .cn-sub span { display: block; margin-top: 3px; color: rgba(255, 255, 255, .5); font: 650 11px/1.25 var(--font); }
+
+  /* ---------- before：右侧诊断面板 ---------- */
+  .diagnosis-panel { display: grid; gap: 14px; align-content: start; }
+
+  .impact-kicker {
+    width: fit-content;
+    border-radius: 999px;
+    padding: 7px 12px;
+    color: #ffd899;
+    background: rgba(255,180,0,.12);
+    border: 1px solid rgba(255,180,0,.28);
+    font: 900 12px/1 var(--font);
+    letter-spacing: .04em;
+  }
+
+  .impact-summary {
+    margin: -2px 0 0;
+    color: rgba(255,255,255,.66);
+    font: 700 15px/1.48 var(--font);
+  }
+
+  .cause-chain {
+    display: grid;
+    grid-template-columns: 1fr 28px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,180,0,.32);
+    background: rgba(58,41,21,.5);
+  }
+
+  .cause-chain b { color: #fff; font: 950 16px/1.2 var(--font); }
+
+  .cause-chain span {
+    display: block;
+    margin-top: 6px;
+    color: rgba(255,255,255,.58);
+    font: 650 12px/1.35 var(--font);
+  }
+
+  .cause-chain i {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: #07131c;
+    background: linear-gradient(135deg, var(--amber), var(--teal));
+    font: normal 950 18px/1 var(--font);
+  }
+
+  .diagnosis-card {
+    border-radius: 12px;
+    padding: 17px 18px;
+    border: 1px solid rgba(113,158,255,.22);
+    background: rgba(255,255,255,.055);
+  }
+
+  .diagnosis-card.hot {
+    border-color: rgba(255,91,127,.42);
+    background: rgba(255,91,127,.09);
+  }
+
+  .diagnosis-card b { display: block; color: #fff; font: 950 19px/1.2 var(--font); }
+
+  .diagnosis-card span {
+    display: block;
+    margin-top: 8px;
+    color: rgba(255,255,255,.64);
+    font: 650 14px/1.45 var(--font);
+  }
+
+  /* ---------- after：三列价值图 ---------- */
+  .col-title {
+    position: absolute;
+    top: 8px;
+    z-index: 3;
+    color: var(--muted);
+    font: 750 14px/1 var(--font);
+    letter-spacing: .04em;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(113, 158, 255, .28);
+  }
+
+  .col-title span { color: var(--dim); font-weight: 500; font-size: 12px; }
+
+  .stack, .hub-stack, .output-stack {
+    position: absolute;
+    z-index: 3;
+    display: grid;
+    gap: 14px;
+    align-content: start;
+  }
+
+  .hub-stack { gap: 16px; }
+
+  .node, .hub, .outcome {
+    border-radius: 10px;
+    border: 1px solid rgba(113, 158, 255, .26);
+    background: rgba(19, 43, 78, .78);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  }
+
+  .node {
+    min-height: 72px;
+    display: grid;
+    grid-template-columns: 1fr 42px;
+    gap: 12px;
+    align-items: center;
+    padding: 13px 13px 13px 16px;
+  }
+
+  .node b, .hub b, .outcome b { display: block; color: #fff; font: 900 16px/1.2 var(--font); }
+
+  .node span, .hub span, .outcome span {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted);
+    font: 650 12px/1.25 var(--font);
+  }
+
+  .node i, .outcome i {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font: normal 900 14px/1 var(--font);
+    color: #9bf4e7;
+    border: 1px solid rgba(51, 214, 192, .42);
+    background: rgba(51, 214, 192, .12);
+    box-shadow: 0 0 16px rgba(51, 214, 192, .14);
+  }
+
+  .hub {
+    min-height: 96px;
+    padding: 15px 16px;
+    background: linear-gradient(145deg, rgba(31, 51, 103, .86), rgba(18, 36, 72, .82));
+    /* 块A·内部均衡约定：内容垂直居中 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .hub.core {
+    min-height: 104px;
+    background: linear-gradient(150deg, rgba(92, 58, 11, .9), rgba(38, 31, 18, .9));
+    border-color: rgba(255, 180, 0, .48);
+    box-shadow: 0 20px 55px rgba(255, 180, 0, .12), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  .hub.core b { color: #ffe2a2; font-size: 18px; }
+
+  .outcome {
+    min-height: 82px;
+    display: grid;
+    grid-template-columns: 1fr 42px;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 14px 14px 16px;
+    border-color: rgba(51, 214, 192, .34);
+    background: rgba(10, 48, 64, .74);
+  }
+
+  /* ---------- after：右侧指标面板 ---------- */
+  .value-list { display: grid; gap: 12px; }
+
+  .metric-card {
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 180, 0, .36);
+    background: rgba(58, 41, 21, .64);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  }
+
+  .metric-card b { display: block; color: #fff; font: 950 20px/1.15 var(--font); }
+
+  .metric-card span {
+    display: block;
+    margin-top: 7px;
+    color: rgba(255,255,255,.68);
+    font: 650 13px/1.45 var(--font);
+  }
+
+  /* ---------- after：旅程时间线（journey）。轨 + N 张等宽卡，grid 自动均分 ---------- */
+  .jr { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; gap: 18px; }
+
+  .jr-rail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 16px;
+    padding: 4px 4px 16px;
+    border-bottom: 1px solid rgba(113, 158, 255, .2);
+  }
+
+  .jr-point { display: flex; align-items: center; gap: 10px; color: var(--muted); font: 800 14px/1.2 var(--font); }
+
+  .jr-point i {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: #07131c;
+    background: linear-gradient(135deg, var(--teal), #b5fff6);
+    font: normal 950 14px/1 var(--font);
+  }
+
+  .jr-grid {
+    flex: 1;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    align-content: center;   /* 卡片按内容高度、整排垂直居中，余量作上下留白而非拉伸图片 */
+    gap: 16px;
+    min-height: 0;
+  }
+
+  .jr-card {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(113, 158, 255, .2);
+    background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .022));
+  }
+
+  /* 文字区：各卡统一高度（JS 设），使下方证据图起点与高度一致 */
+  .jr-head { display: flex; flex-direction: column; gap: 12px; }
+
+  .jr-card em {
+    width: fit-content;
+    font-style: normal;
+    border-radius: 999px;
+    padding: 6px 10px;
+    color: #9bf4e7;
+    background: rgba(51, 214, 192, .12);
+    border: 1px solid rgba(51, 214, 192, .24);
+    font: 850 12px/1 var(--font);
+  }
+
+  .jr-card h3 { margin: 0; color: #fff; font: 950 19px/1.2 var(--font); }
+
+  .jr-compare { display: grid; gap: 8px; }
+
+  .jr-compare div {
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .04);
+  }
+
+  .jr-compare div.is-after {
+    border-color: rgba(51, 214, 192, .26);
+    background: rgba(51, 214, 192, .08);
+  }
+
+  .jr-compare b { color: rgba(255, 255, 255, .82); font: 850 12px/1 var(--font); }
+  .jr-compare span { display: block; margin-top: 5px; color: rgba(255, 255, 255, .6); font: 650 12px/1.4 var(--font); }
+  .jr-compare div.is-after b { color: #9bf4e7; }
+
+  .jr-shot {
+    height: 218px;           /* 合理固定高度，避免图被拉伸失真；各卡一致 */
+    margin-top: 6px;         /* 图与文字区间隙比常规(12)略大 → 18，作刻意分隔 */
+    border: 1px solid rgba(113, 158, 255, .22);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    display: grid;
+    grid-template-rows: 1fr auto;
+  }
+
+  .jr-shot img { width: 100%; height: 100%; min-height: 0; object-fit: cover; display: block; }
+  .jr-shot span { display: block; padding: 9px 12px; color: rgba(255, 255, 255, .64); font: 700 12px/1.35 var(--font); }
+
+  /* ---------- evidence：实证 pane ---------- */
+  .evidence-panel { height: 820px; padding: 28px; position: relative; z-index: 2; }
+
+  .evidence-head { margin-bottom: 22px; }
+
+  .evidence-head h2 { margin: 0; color: #fff; font: 950 34px/1.15 var(--font); }
+
+  .evidence-head p {
+    margin: 8px 0 0;
+    max-width: 1100px;
+    color: var(--muted);
+    font: 650 16px/1.45 var(--font);
+  }
+
+  .evidence-flow {
+    display: grid;
+    grid-template-columns: 310px minmax(0, 1fr) 430px;
+    grid-template-rows: minmax(0, 1fr) 92px;
+    gap: 16px;
+    height: 672px;
+  }
+
+  .proof-logic, .proof-media, .proof-shots, .proof-values {
+    border-radius: 12px;
+    border: 1px solid rgba(113,158,255,.2);
+    background: rgba(8, 20, 40, .66);
+    min-height: 0;
+  }
+
+  .proof-logic { padding: 20px; display: grid; align-content: start; gap: 14px; }
+
+  .logic-title { margin: 0 0 4px; color: #fff; font: 950 26px/1.15 var(--font); }
+  .logic-copy { margin: 0 0 8px; color: var(--muted); font: 650 14px/1.45 var(--font); }
+
+  .logic-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 12px;
+    align-items: start;
+    min-height: 78px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.055);
+    border: 1px solid rgba(255,255,255,.1);
+  }
+
+  .logic-step:after {
+    content: "";
+    position: absolute;
+    left: 29px;
+    bottom: -16px;
+    width: 2px;
+    height: 16px;
+    background: rgba(51,214,192,.4);
+  }
+
+  .logic-step:last-child:after { display: none; }
+
+  .logic-step i {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: #07131c;
+    background: linear-gradient(135deg, var(--teal), #b5fff6);
+    font: normal 950 14px/1 var(--font);
+  }
+
+  .logic-step b { display: block; color: #fff; font: 900 16px/1.18 var(--font); }
+
+  .logic-step span {
+    display: block;
+    margin-top: 6px;
+    color: rgba(255,255,255,.58);
+    font: 650 12px/1.35 var(--font);
+  }
+
+  .proof-media { padding: 18px; display: grid; grid-auto-rows: 1fr; gap: 14px; }
+
+  .video-proof {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 260px) 1fr;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    background: linear-gradient(150deg, rgba(10,42,58,.72), rgba(9,17,34,.82));
+    border: 1px solid rgba(51,214,192,.2);
+  }
+
+  .video-proof video {
+    width: 100%;
+    height: 100%;
+    min-height: 210px;
+    object-fit: cover;
+    border-radius: 10px;
+    background: #000;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+
+  .video-copy { display: grid; align-content: center; gap: 10px; min-width: 0; }
+
+  .video-copy em {
+    width: fit-content;
+    border-radius: 999px;
+    padding: 7px 10px;
+    color: #9bf4e7;
+    background: rgba(51,214,192,.12);
+    border: 1px solid rgba(51,214,192,.24);
+    font: normal 850 12px/1 var(--font);
+  }
+
+  .video-copy b { color: #fff; font: 950 22px/1.14 var(--font); }
+  .video-copy span { color: rgba(255,255,255,.64); font: 700 14px/1.45 var(--font); }
+
+  .hero-shot {
+    position: relative;
+    min-height: 0;
+    border: 1px solid rgba(113,158,255,.22);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .hero-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .hero-shot figcaption {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: rgba(8,12,24,.72);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.1);
+    color: rgba(255,255,255,.85);
+    font: 750 14px/1.3 var(--font);
+  }
+
+  .proof-shots {
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 1fr;
+    gap: 12px;
+  }
+
+  .proof-card {
+    min-height: 0;
+    border: 1px solid rgba(113,158,255,.22);
+    border-radius: 12px;
+    background: rgba(8, 20, 40, .74);
+    overflow: hidden;
+    text-align: left;
+    color: inherit;
+    padding: 0;
+    cursor: pointer;
+    display: grid;
+    grid-template-rows: 118px 1fr;
+  }
+
+  .proof-card img {
+    width: 100%;
+    height: 118px;
+    display: block;
+    object-fit: cover;
+    background: rgba(255,255,255,.06);
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+
+  .proof-copy { padding: 12px; }
+  .proof-copy b { color: #fff; font: 950 15px/1.2 var(--font); }
+
+  .proof-copy span {
+    display: block;
+    margin-top: 6px;
+    color: rgba(255,255,255,.62);
+    font: 700 12px/1.35 var(--font);
+  }
+
+  .proof-values {
+    grid-column: 1 / -1;
+    padding: 14px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 12px;
+  }
+
+  .value-proof {
+    border-radius: 10px;
+    border: 1px solid rgba(255,180,0,.3);
+    background: rgba(58,41,21,.58);
+    padding: 14px 16px;
+  }
+
+  .value-proof b { display: block; color: #fff; font: 950 18px/1.15 var(--font); }
+
+  .value-proof span {
+    display: block;
+    margin-top: 6px;
+    color: rgba(255,255,255,.62);
+    font: 650 12px/1.35 var(--font);
+  }
+
+  /* ---------- 灯箱 ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    place-items: center;
+    padding: 42px;
+    background: rgba(0,0,0,.78);
+  }
+
+  .modal.open { display: grid; }
+
+  .modal figure { margin: 0; max-width: min(1500px, 94vw); max-height: 88vh; }
+
+  .modal img {
+    max-width: 100%;
+    max-height: 82vh;
+    object-fit: contain;
+    border-radius: 12px;
+    display: block;
+    background: #000;
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 30px 90px rgba(0,0,0,.45);
+  }
+
+  .modal figcaption {
+    margin-top: 14px;
+    color: rgba(255,255,255,.76);
+    text-align: center;
+    font: 750 15px/1.4 var(--font);
+  }
+
+  .close {
+    position: fixed;
+    top: 22px;
+    right: 26px;
+    width: 54px;
+    height: 54px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.1);
+    color: #fff;
+    font: 900 34px/1 var(--font);
+    cursor: pointer;
+  }
+
+  /* ---------- 入场动效（pane 切换时 display:none→block 自动重放） ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    html:not(.no-motion) .pane.active [data-reveal] {
+      animation: ccUp .6s cubic-bezier(.16, 1, .3, 1) both;
+      animation-delay: calc(var(--i, 0) * 70ms);
+    }
+
+    html:not(.no-motion) .pane.active .net-lines path.anim-draw {
+      stroke-dasharray: var(--len);
+      animation: ccDraw .9s ease both;
+      animation-delay: calc(.35s + var(--d, 0) * 80ms);
+    }
+
+    html:not(.no-motion) .pane.active .net-lines path.anim-fade {
+      animation: ccFade .8s ease both;
+      animation-delay: calc(.45s + var(--d, 0) * 80ms);
+    }
+  }
+
+  @keyframes ccUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes ccDraw {
+    from { stroke-dashoffset: var(--len); }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes ccFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage-shell">
+    <main class="slide">
+      <div class="brand" id="brand"></div>
+      <nav class="toggle" id="toggle" aria-label="案例视角切换" role="tablist"></nav>
+
+      <header class="head">
+        <h1 id="mainTitle"></h1>
+        <p class="sub" id="mainSub"></p>
+      </header>
+
+      <section class="pane" data-pane="before">
+        <div class="layout">
+          <section class="map-panel"><div class="map" id="painMap"></div></section>
+          <aside class="side-panel"><div class="diagnosis-panel" id="painDetail"></div></aside>
+        </div>
+      </section>
+
+      <section class="pane" data-pane="after">
+        <div class="layout">
+          <section class="map-panel"><div class="map" id="valueMap"></div></section>
+          <aside class="side-panel" id="afterSide"></aside>
+        </div>
+      </section>
+
+      <section class="pane" data-pane="evidence">
+        <section class="evidence-panel" id="evidencePanel"></section>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="modal" aria-hidden="true">
+    <button class="close" type="button" aria-label="关闭">×</button>
+    <figure>
+      <img id="modalImg" alt="">
+      <figcaption id="modalCaption"></figcaption>
+    </figure>
+  </div>
+
+<script type="application/json" id="case-data">{}</script>
+<script>
+(function () {
+  "use strict";
+
+  /* ===== 数据与小工具 ===== */
+  var data;
+  try {
+    data = JSON.parse(document.getElementById("case-data").textContent);
+  } catch (e) {
+    data = {};
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function el(tag, cls, html) {
+    var d = document.createElement(tag);
+    if (cls) d.className = cls;
+    if (html != null) d.innerHTML = html;
+    return d;
+  }
+
+  function offsetWithin(node, ancestor) {
+    var x = 0, y = 0;
+    while (node && node !== ancestor) {
+      x += node.offsetLeft;
+      y += node.offsetTop;
+      node = node.offsetParent;
+    }
+    return { x: x, y: y };
+  }
+
+  function rectWithin(node, ancestor) {
+    var o = offsetWithin(node, ancestor);
+    var w = node.offsetWidth, h = node.offsetHeight;
+    return { x: o.x, y: o.y, w: w, h: h, cx: o.x + w / 2, cy: o.y + h / 2 };
+  }
+
+  var SVG_NS = "http://www.w3.org/2000/svg";
+
+  function makeSvg(map, withArrow) {
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "net-lines");
+    svg.setAttribute("viewBox", "0 0 " + map.offsetWidth + " " + map.offsetHeight);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("aria-hidden", "true");
+    if (withArrow) {
+      var defs = document.createElementNS(SVG_NS, "defs");
+      var m = document.createElementNS(SVG_NS, "marker");
+      m.setAttribute("id", "ccArrow");
+      m.setAttribute("viewBox", "0 0 10 10");
+      m.setAttribute("refX", "8");
+      m.setAttribute("refY", "5");
+      m.setAttribute("markerWidth", "7");
+      m.setAttribute("markerHeight", "7");
+      m.setAttribute("orient", "auto-start-reverse");
+      var tip = document.createElementNS(SVG_NS, "path");
+      tip.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+      tip.setAttribute("fill", "rgba(113,158,255,.7)");
+      m.appendChild(tip);
+      defs.appendChild(m);
+      svg.appendChild(defs);
+    }
+    map.insertBefore(svg, map.firstChild);
+    return svg;
+  }
+
+  function addPath(svg, d, cls, anim, delayIdx) {
+    var p = document.createElementNS(SVG_NS, "path");
+    p.setAttribute("d", d);
+    p.setAttribute("class", cls + (anim ? " anim-" + anim : ""));
+    if (cls.indexOf("flow") === 0) p.setAttribute("marker-end", "url(#ccArrow)");
+    p.style.setProperty("--d", delayIdx || 0);
+    svg.appendChild(p);
+    if (anim === "draw") {
+      // --len 在 path 入树后测量；draw 动画从 dashoffset=len 收到 0
+      p.style.setProperty("--len", Math.ceil(p.getTotalLength()) + "px");
+    }
+    return p;
+  }
+
+  function curve(sx, sy, tx, ty) {
+    var mx = (sx + tx) / 2;
+    return "M" + sx + " " + sy + " C" + mx + " " + sy + ", " + mx + " " + ty + ", " + tx + " " + ty;
+  }
+
+  // 两矩形之间的正交连线：水平差大走左右出入边，否则走上下出入边。
+  function routeOrtho(a, b) {
+    if (Math.abs(b.cx - a.cx) >= Math.abs(b.cy - a.cy)) {
+      return b.cx >= a.cx
+        ? "M" + (a.x + a.w) + " " + a.cy + " L" + b.x + " " + b.cy
+        : "M" + a.x + " " + a.cy + " L" + (b.x + b.w) + " " + b.cy;
+    }
+    return b.cy >= a.cy
+      ? "M" + a.cx + " " + (a.y + a.h) + " L" + b.cx + " " + b.y
+      : "M" + a.cx + " " + a.y + " L" + b.cx + " " + (b.y + b.h);
+  }
+
+  // 高级画线：edges=[{from,to,kind,anim}]，端点由 nodeMap 里两节点的实测矩形决定。
+  function drawEdges(svg, container, nodeMap, edges, anim) {
+    (edges || []).forEach(function (e, idx) {
+      if (!nodeMap[e.from] || !nodeMap[e.to]) return;
+      var a = rectWithin(nodeMap[e.from], container);
+      var b = rectWithin(nodeMap[e.to], container);
+      addPath(svg, routeOrtho(a, b), e.kind || "flow", e.anim || anim || "fade", idx);
+    });
+  }
+
+  function revealEl(node, i) {
+    node.dataset.reveal = "";
+    if (i != null) node.style.setProperty("--i", i);
+    return node;
+  }
+
+  /* 块B·同级字号适配：在 [minPx, maxPx] 内取"能让每个元素都 ≤ maxLines 行"的最大字号，
+     整组统一应用。同结构内同级一致、随结构自适应、不写死某一字号。els 须为定宽换行的文本。 */
+  function fitLevel(els, minPx, maxPx, maxLines) {
+    els = [].slice.call(els);
+    if (!els.length) return;
+    for (var size = maxPx; size >= minPx; size--) {
+      var ok = true;
+      for (var i = 0; i < els.length; i++) els[i].style.fontSize = size + "px";
+      for (var j = 0; j < els.length; j++) {
+        var lh = parseFloat(getComputedStyle(els[j]).lineHeight) || size * 1.25;
+        if (Math.round(els[j].scrollHeight / lh) > maxLines) { ok = false; break; }
+      }
+      if (ok) return;   // 触底仍超行则保持 min（已设），允许换行
+    }
+  }
+
+  /* ===== 底座 API：授权 raw 版式在此之上作图，复用画线/动效/灯箱，避免漂移 =====
+     pane.layout === "raw" 时，conf.js 以 new Function(pane, CaseCard) 运行。
+     用法见 SKILL.md「授权作图路径」与 examples/raw-pane-demo.json。 */
+  window.CaseCard = {
+    el: el, esc: esc, rect: rectWithin,
+    svg: makeSvg, path: addPath, curve: curve, routeOrtho: routeOrtho,
+    drawEdges: drawEdges, reveal: revealEl, fit: fitLevel, lightbox: openLightbox
+  };
+
+  /* ===== 装配：数据来自数据岛（build.py 注入）或空状态下选择的本地 JSON ===== */
+  var ORDER = ["before", "after", "evidence"];
+  var LABELS = { before: "之前", after: "之后", evidence: "案例实证" };
+  var header, panes, present, built, revealCounters;
+
+  function boot(d) {
+    data = d;
+    header = data.header || {};
+    panes = data.panes || {};
+    present = ORDER.filter(function (k) { return panes[k]; });
+    built = {};
+    revealCounters = {};
+
+    document.title = data.doc_title || header.title || document.title;
+    document.getElementById("brand").textContent = data.brand || "";
+    document.getElementById("mainTitle").textContent = header.title || "";
+    if (data.motion === false) document.documentElement.classList.add("no-motion");
+
+    var toggle = document.getElementById("toggle");
+    toggle.innerHTML = "";
+    present.forEach(function (key) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("role", "tab");
+      b.dataset.view = key;
+      b.textContent = panes[key].label || LABELS[key];
+      b.addEventListener("click", function () { activate(key); });
+      toggle.appendChild(b);
+    });
+    (data.links || []).forEach(function (lk) {
+      var a = document.createElement("a");
+      a.href = lk.href;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = lk.label;
+      toggle.appendChild(a);
+    });
+
+    var hash = location.hash.replace("#", "");
+    activate(present.indexOf(hash) >= 0 ? hash : (data.initial || present[0]));
+  }
+
+  /* 数据岛为空（直接打开 template.html）：空状态说明 + 本地 JSON 预览入口 */
+  function showEmptyState() {
+    var empty = el("div", "", "");
+    empty.style.cssText =
+      "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);" +
+      "width:880px;padding:44px 48px;border-radius:14px;text-align:left;z-index:9;" +
+      "border:1px solid rgba(113,158,255,.3);background:rgba(8,18,42,.86);" +
+      "box-shadow:0 30px 80px rgba(0,0,0,.4);";
+    empty.innerHTML =
+      '<div style="font:950 34px/1.2 var(--font);color:#fff;margin-bottom:14px">' +
+      "case-card-h5 模板 — 数据岛为空</div>" +
+      '<p style="margin:0 0 18px;color:rgba(255,255,255,.7);font:650 17px/1.6 var(--font)">' +
+      "这个文件不直接打开使用。正式产出请用构建命令注入案例 JSON：</p>" +
+      '<pre style="margin:0 0 18px;padding:16px 18px;border-radius:10px;' +
+      "background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);" +
+      'color:#9bf4e7;font:700 15px/1.7 ui-monospace,Consolas,monospace">' +
+      "python validate.py &lt;case&gt;.json --assets &lt;输出目录&gt;\n" +
+      "python build.py    &lt;case&gt;.json &lt;输出目录&gt;/index.html</pre>" +
+      '<button type="button" id="ccPick" style="height:46px;padding:0 26px;border:0;' +
+      "border-radius:999px;cursor:pointer;color:#07131c;font:850 16px/1 var(--font);" +
+      'background:linear-gradient(135deg,#33d6c0,#9bf4e7)">' +
+      "或：选择本地 JSON 直接预览（也可拖拽到本面板）</button>" +
+      '<p style="margin:16px 0 0;color:rgba(255,255,255,.56);font:650 14px/1.6 var(--font)">' +
+      "预览模式下图片/视频按相对路径解析，可能显示不出来 —— 版式、文案、交互、动效以预览为准，" +
+      "资产以 build.py 产物为准。换一份 JSON 请刷新页面。字段契约见 schema/case-card.schema.json，" +
+      "参考实例见 examples/pengfei.json。</p>";
+    document.querySelector(".slide").appendChild(empty);
+    document.title = "case-card-h5 模板（待注入数据）";
+
+    var picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = ".json,application/json";
+    picker.style.display = "none";
+    empty.appendChild(picker);
+
+    function loadFile(file) {
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var d;
+        try {
+          d = JSON.parse(reader.result);
+        } catch (e) {
+          alert("JSON 解析失败：" + e.message);
+          return;
+        }
+        empty.remove();
+        boot(d);
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    empty.querySelector("#ccPick").addEventListener("click", function () { picker.click(); });
+    picker.addEventListener("change", function () { loadFile(picker.files[0]); });
+    empty.addEventListener("dragover", function (ev) { ev.preventDefault(); });
+    empty.addEventListener("drop", function (ev) {
+      ev.preventDefault();
+      loadFile(ev.dataTransfer.files && ev.dataTransfer.files[0]);
+    });
+  }
+
+  function reveal(node, paneKey) {
+    revealCounters[paneKey] = (revealCounters[paneKey] || 0) + 1;
+    node.dataset.reveal = "";
+    node.style.setProperty("--i", revealCounters[paneKey]);
+    return node;
+  }
+
+  function activate(key) {
+    if (present.indexOf(key) < 0) key = present[0];
+    if (!key) return;
+    document.querySelectorAll(".toggle button").forEach(function (b) {
+      var on = b.dataset.view === key;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", String(on));
+    });
+    document.querySelectorAll(".pane").forEach(function (p) {
+      p.classList.toggle("active", p.dataset.pane === key);
+    });
+    document.getElementById("mainSub").textContent = panes[key].sub || header.sub || "";
+    if (!built[key]) {
+      built[key] = true;
+      // 此时 pane 已 display:block，可以测量布局
+      if (panes[key].layout === "raw") buildRaw(key);
+      else if (key === "before") (panes.before.layout === "column-network" ? buildColumnNetwork : buildBefore)();
+      else if (key === "after") (panes.after.layout === "journey" ? buildJourney : buildAfter)();
+      else if (key === "evidence") buildEvidence();
+    }
+  }
+
+  // 同沟槽（cx 相近）的断点按 cy 去重叠
+  function deCollideDots(dots) {
+    var groups = {};
+    dots.forEach(function (d) {
+      var g = Math.round(d._cx / 40);
+      (groups[g] = groups[g] || []).push(d);
+    });
+    Object.keys(groups).forEach(function (g) {
+      var arr = groups[g].sort(function (a, b) { return a._cy - b._cy; });
+      for (var i = 1; i < arr.length; i++) {
+        var minGap = arr[i - 1].offsetHeight / 2 + arr[i].offsetHeight / 2 + 12;
+        if (arr[i]._cy - arr[i - 1]._cy < minGap) arr[i]._cy = arr[i - 1]._cy + minGap;
+      }
+    });
+  }
+
+  /* ===== 断点 → 诊断（swimlane / column-network 共用） =====
+     默认 dots 落在 between 两节点中点；opts.placeFn 可改成沟槽定位（column-network），
+     opts.deCollide 开启同沟槽去重叠。点击高亮 related 节点并渲染右侧三联诊断。 */
+  function bindBreakpoints(map, detailHost, nodeByKey, breakpoints, paneKey, opts) {
+    opts = opts || {};
+    var dots = [];
+
+    function select(key) {
+      var bp = null;
+      (breakpoints || []).forEach(function (x) { if (x.key === key) bp = x; });
+      if (!bp) return;
+      dots.forEach(function (d) { d.classList.toggle("active", d.dataset.key === key); });
+      Object.keys(nodeByKey).forEach(function (k) {
+        nodeByKey[k].classList.toggle("is-related", (bp.related || []).indexOf(k) >= 0);
+      });
+      var dd = bp.detail || {};
+      var html = "";
+      if (dd.kicker) html += '<div class="impact-kicker" data-reveal style="--i:0">' + esc(dd.kicker) + "</div>";
+      html += '<h2 class="side-title" data-reveal style="--i:1">' + esc(dd.title) + "</h2>";
+      if (dd.summary) html += '<p class="impact-summary" data-reveal style="--i:2">' + esc(dd.summary) + "</p>";
+      if (dd.chain) {
+        html += '<div class="cause-chain" data-reveal style="--i:3">' +
+          "<div><b>" + esc(dd.chain.from) + "</b><span>根因落点</span></div><i>→</i>" +
+          "<div><b>" + esc(dd.chain.to) + "</b><span>关键影响</span></div></div>";
+      }
+      (dd.cards || []).forEach(function (c, i) {
+        html += '<div class="diagnosis-card' + (i === 0 ? " hot" : "") + '" data-reveal style="--i:' + (4 + i) + '">' +
+          "<b>" + esc(c.label) + "</b><span>" + esc(c.text) + "</span></div>";
+      });
+      detailHost.innerHTML = html;
+    }
+
+    (breakpoints || []).forEach(function (bp) {
+      var d = el("div", "pain-dot", esc(bp.label));
+      d.dataset.key = bp.key;
+      d.setAttribute("role", "button");
+      d.setAttribute("tabindex", "0");
+      map.appendChild(reveal(d, paneKey));
+      var c;
+      if (opts.placeFn) {
+        c = opts.placeFn(bp);
+      } else {
+        var a = rectWithin(nodeByKey[bp.between[0]], map);
+        var b = rectWithin(nodeByKey[bp.between[1]], map);
+        c = { cx: (a.cx + b.cx) / 2, cy: (a.cy + b.cy) / 2 };
+      }
+      var off = bp.offset || [0, 0];
+      d._cx = c.cx + off[0];
+      d._cy = c.cy + off[1];
+      d.addEventListener("click", function () { select(bp.key); });
+      d.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(bp.key); }
+      });
+      dots.push(d);
+    });
+
+    if (opts.deCollide) deCollideDots(dots);
+    dots.forEach(function (d) {
+      d.style.left = (d._cx - d.offsetWidth / 2) + "px";
+      d.style.top = (d._cy - d.offsetHeight / 2) + "px";
+    });
+
+    if (breakpoints && breakpoints.length) select(breakpoints[0].key);
+  }
+
+  function renderLegend(map, legend) {
+    var items = legend || [{ kind: "flow", label: "人工推进" }, { kind: "data", label: "经验回流" }];
+    var lg = el("div", "pain-legend");
+    items.forEach(function (item) {
+      lg.appendChild(el("span", "", '<i class="' + esc(item.kind) + '"></i>' + esc(item.label)));
+    });
+    map.appendChild(lg);
+  }
+
+  /* ===== before：泳道痛点图（swimlane） ===== */
+  function buildBefore() {
+    var conf = panes.before;
+    var map = document.getElementById("painMap");
+    var W = map.offsetWidth, H = map.offsetHeight;
+    var S = conf.stages.length, L = conf.lanes.length;
+    var gutter = 124;
+    var bandTop = 64, bandBottom = H - 56;
+    var lanesTop = bandTop + 34, lanesBottom = bandBottom - 10;
+    var laneStride = (lanesBottom - lanesTop) / L;
+
+    // 规划横向沟槽：跨阶段断点在所跨边界预留加宽沟槽，pill 落沟槽不压模块（同 column-network）。
+    // 同阶段断点（跨泳道）本就落在纵向空隙，不需沟槽。
+    var SW_BP_GUT = 128;
+    var keyStage = {};
+    conf.nodes.forEach(function (n) { keyStage[n.key] = n.stage; });
+    var bGut = {};
+    (conf.breakpoints || []).forEach(function (bp) {
+      var s1 = keyStage[bp.between[0]], s2 = keyStage[bp.between[1]];
+      if (s1 != null && s2 != null && s1 !== s2) bGut[Math.min(s1, s2)] = true;
+    });
+    var stageW = (W - gutter - Object.keys(bGut).length * SW_BP_GUT) / S;
+    function stageLeft(i) { var x = gutter + i * stageW; for (var b = 0; b < i; b++) if (bGut[b]) x += SW_BP_GUT; return x; }
+    function gutCenterX(b) { return stageLeft(b) + stageW + SW_BP_GUT / 2; }
+
+    var svg = makeSvg(map, true);
+
+    if (conf.banner) {
+      map.appendChild(reveal(el("div", "pain-scene",
+        "<i>" + esc(conf.banner.icon || "案") + "</i><b>" + esc(conf.banner.title) +
+        "</b><span>" + esc(conf.banner.desc) + "</span>"), "before"));
+    }
+
+    conf.stages.forEach(function (label, i) {
+      var band = el("div", "pain-stage");
+      band.dataset.stage = label;
+      band.style.left = (stageLeft(i) + 6) + "px";
+      band.style.top = bandTop + "px";
+      band.style.width = (stageW - 12) + "px";
+      band.style.height = (bandBottom - bandTop) + "px";
+      map.appendChild(reveal(band, "before"));
+    });
+
+    conf.lanes.forEach(function (label, j) {
+      var s = el("div", "swim", esc(label));
+      s.style.left = "0px";
+      s.style.top = (lanesTop + j * laneStride + laneStride / 2 - 21) + "px";
+      map.appendChild(reveal(s, "before"));
+    });
+
+    var nodeByKey = {};
+    conf.nodes.forEach(function (n) {
+      var cls = "pain-node" + (n.variant ? " " + n.variant : "") + (n.dim ? " dim" : "");
+      var d = el("div", cls,
+        "<b>" + esc(n.title) + "</b><span>" + esc(n.desc || "") + "</span>" +
+        (n.icon ? '<i class="avatar">' + esc(n.icon) + "</i>" : ""));
+      d.style.left = (stageLeft(n.stage) + 26) + "px";
+      d.style.width = (stageW - 52) + "px";
+      map.appendChild(reveal(d, "before"));
+      nodeByKey[n.key] = d;
+    });
+    // 块B·同级字号适配（先定字号，再量高居中）
+    fitLevel(map.querySelectorAll(".pain-node b"), 14, 18, 2);
+    fitLevel(map.querySelectorAll(".pain-node span"), 11, 13, 3);
+
+    // 节点入树后量高，按泳道垂直居中
+    conf.nodes.forEach(function (n) {
+      var d = nodeByKey[n.key];
+      d.style.top = (lanesTop + n.lane * laneStride + (laneStride - d.offsetHeight) / 2) + "px";
+    });
+
+    var edges = conf.edges;
+    if (!edges) {
+      edges = [];
+      conf.lanes.forEach(function (_, j) {
+        var row = conf.nodes.filter(function (n) { return n.lane === j; })
+          .sort(function (a, b) { return a.stage - b.stage; });
+        for (var i = 0; i + 1 < row.length; i++) {
+          edges.push({ from: row[i].key, to: row[i + 1].key, kind: "flow" });
+        }
+      });
+    }
+    drawEdges(svg, map, nodeByKey, edges);
+
+    bindBreakpoints(map, document.getElementById("painDetail"), nodeByKey, conf.breakpoints, "before", {
+      deCollide: true,
+      placeFn: function (bp) {
+        var a = rectWithin(nodeByKey[bp.between[0]], map);
+        var b = rectWithin(nodeByKey[bp.between[1]], map);
+        var s1 = keyStage[bp.between[0]], s2 = keyStage[bp.between[1]];
+        var cross = s1 != null && s2 != null && s1 !== s2;
+        return { cx: cross ? gutCenterX(Math.min(s1, s2)) : (a.cx + b.cx) / 2, cy: (a.cy + b.cy) / 2 };
+      }
+    });
+    renderLegend(map, conf.legend);
+  }
+
+  /* ===== before：列式网络（column-network）—— 自适应规划器 =====
+     横向：托管断点的列间沟槽加宽（CSS grid 交替"列 + 沟槽"轨道），列宽自动均分剩余。
+     纵向：列内空隙均匀填充、单条封顶、余量居中（方案 2）。
+     断点落在加宽且空的沟槽里 → 不再压模块；同沟槽多断点上下去重叠。连线/诊断/图例复用底座。 */
+  var CN_BASE_GUT = 24, CN_BP_GUT = 132, CN_VGAP_MAX = 40, CN_VGAP_MIN = 10;
+
+  function buildColumnNetwork() {
+    var conf = panes.before;
+    var map = document.getElementById("painMap");
+    var n = conf.columns.length;
+
+    var cols = el("div", "cn-cols");
+    var nodeByKey = {}, keyCol = {}, colEls = [];
+
+    conf.columns.forEach(function (col, ci) {
+      var colEl = el("div", "cn-col");
+      colEl.style.gridColumn = String(2 * ci + 1);  // 占奇数轨道，偶数轨道留作沟槽
+      if (col.title) {
+        colEl.appendChild(el("div", "cn-col-title",
+          esc(col.title) + (col.en ? " <span>" + esc(col.en) + "</span>" : "")));
+      }
+      var stack = el("div", "cn-stack");
+      (col.items || []).forEach(function (it) {
+        var node;
+        if (it.group || it.children) {
+          var head = '<div class="cn-group-head">' +
+            (it.icon ? '<span class="num">' + esc(it.icon) + "</span>" : "") +
+            "<div><b>" + esc(it.title) + "</b>" +
+            (it.desc ? "<span>" + esc(it.desc) + "</span>" : "") + "</div></div>";
+          var kids = (it.children || []).map(function (c) {
+            return '<div class="cn-sub"><b>' + esc(c.title) + "</b>" +
+              (c.desc ? "<span>" + esc(c.desc) + "</span>" : "") + "</div>";
+          }).join("");
+          node = el("div", "cn-group" + (it.dim ? " dim" : ""), head + kids);
+        } else {
+          node = el("div", "cn-node" + (it.variant ? " " + it.variant : "") + (it.dim ? " dim" : ""),
+            "<div><b>" + esc(it.title) + "</b>" +
+            (it.desc ? "<span>" + esc(it.desc) + "</span>" : "") + "</div>" +
+            (it.icon ? "<i>" + esc(it.icon) + "</i>" : ""));
+        }
+        reveal(node, "before");
+        stack.appendChild(node);
+        if (it.key) { nodeByKey[it.key] = node; keyCol[it.key] = ci; }
+      });
+      colEl.appendChild(stack);
+      cols.appendChild(colEl);
+      colEls.push(colEl);
+    });
+
+    function gutterOf(bp) {
+      var c1 = keyCol[bp.between[0]], c2 = keyCol[bp.between[1]];
+      if (c1 == null || c2 == null) return null;
+      return Math.min(n - 2, Math.max(0, Math.floor((Math.min(c1, c2) + Math.max(c1, c2)) / 2)));
+    }
+
+    // 规划横向轨道：托管断点的沟槽加宽，其余窄
+    var gutterBp = {};
+    (conf.breakpoints || []).forEach(function (bp) {
+      var g = gutterOf(bp);
+      if (g != null) gutterBp[g] = true;
+    });
+    var tracks = [];
+    for (var i = 0; i < n; i++) {
+      tracks.push("1fr");
+      if (i < n - 1) tracks.push((gutterBp[i] ? CN_BP_GUT : CN_BASE_GUT) + "px");
+    }
+    cols.style.gridTemplateColumns = tracks.join(" ");
+    map.appendChild(cols);
+
+    // 块B·同级字号适配（先定字号，再算纵向分布与连线）
+    fitLevel(cols.querySelectorAll(".cn-node b"), 14, 17, 2);
+    fitLevel(cols.querySelectorAll(".cn-node span"), 11, 13, 3);
+
+    // 规划纵向：每列空隙均匀填充 + 单条封顶 + 余量居中（方案 2）
+    colEls.forEach(function (colEl) {
+      var stack = colEl.querySelector(".cn-stack");
+      var items = [].slice.call(stack.children);
+      if (!items.length) return;
+      var H = stack.clientHeight;
+      var C = items.reduce(function (s, n2) { return s + n2.offsetHeight; }, 0);
+      var k = items.length;
+      var extra = H - C;
+      var gap = extra <= 0 ? CN_VGAP_MIN : Math.min(extra / (k + 1), CN_VGAP_MAX);
+      var residual = Math.max(0, H - C - gap * (k + 1));
+      stack.style.rowGap = gap.toFixed(1) + "px";
+      stack.style.paddingTop = (gap + residual / 2).toFixed(1) + "px";
+    });
+
+    // 连线（在纵向定位之后实测）
+    var svg = makeSvg(map, true);
+    drawEdges(svg, map, nodeByKey, conf.edges);
+
+    // 断点落在所属沟槽中心，y = 两端点中点
+    function gutterCenterX(g) {
+      var l = rectWithin(colEls[g], map), r = rectWithin(colEls[g + 1], map);
+      return (l.x + l.w + r.x) / 2;
+    }
+    bindBreakpoints(map, document.getElementById("painDetail"), nodeByKey, conf.breakpoints, "before", {
+      deCollide: true,
+      placeFn: function (bp) {
+        var g = gutterOf(bp);
+        var a = rectWithin(nodeByKey[bp.between[0]], map);
+        var b = rectWithin(nodeByKey[bp.between[1]], map);
+        return { cx: g == null ? (a.cx + b.cx) / 2 : gutterCenterX(g), cy: (a.cy + b.cy) / 2 };
+      }
+    });
+
+    renderLegend(map, conf.legend);
+  }
+
+  /* ===== after：三列价值图 ===== */
+  function buildAfter() {
+    var conf = panes.after;
+    var map = document.getElementById("valueMap");
+    var COLS = {
+      inputs: { x: 4, w: 280 },
+      hub: { x: 410, w: 360 },
+      outputs: { x: 850, w: 340 }
+    };
+    var TITLES = {
+      inputs: { zh: "现场输入", en: "Inputs" },
+      hub: { zh: "AI 中枢", en: "AI Hub" },
+      outputs: { zh: "业务闭环", en: "Outcomes" }
+    };
+    var svg = makeSvg(map, false);
+
+    Object.keys(COLS).forEach(function (k) {
+      var t = (conf.columns && conf.columns[k]) || TITLES[k];
+      var d = el("div", "col-title", esc(t.zh) + (t.en ? " <span>" + esc(t.en) + "</span>" : ""));
+      d.style.left = COLS[k].x + "px";
+      d.style.width = (k === "inputs" ? 260 : k === "hub" ? 300 : 280) + "px";
+      map.appendChild(reveal(d, "after"));
+    });
+
+    var stackTop = 80;
+
+    var inputStack = el("div", "stack");
+    inputStack.style.left = COLS.inputs.x + "px";
+    inputStack.style.top = stackTop + "px";
+    inputStack.style.width = COLS.inputs.w + "px";
+    var inputEls = (conf.inputs || []).map(function (n) {
+      var d = el("div", "node",
+        "<div><b>" + esc(n.title) + "</b><span>" + esc(n.desc || "") + "</span></div>" +
+        (n.icon ? "<i>" + esc(n.icon) + "</i>" : ""));
+      inputStack.appendChild(reveal(d, "after"));
+      return d;
+    });
+    map.appendChild(inputStack);
+
+    var hubStack = el("div", "hub-stack");
+    hubStack.style.left = COLS.hub.x + "px";
+    hubStack.style.top = stackTop + "px";
+    hubStack.style.width = COLS.hub.w + "px";
+    var core = conf.hub.core;
+    hubStack.appendChild(reveal(el("div", "hub core",
+      "<b>" + esc(core.title) + "</b><span>" + esc(core.desc || "") + "</span>"), "after"));
+    (conf.hub.cells || []).forEach(function (c) {
+      hubStack.appendChild(reveal(el("div", "hub",
+        "<b>" + esc(c.title) + "</b><span>" + esc(c.desc || "") + "</span>"), "after"));
+    });
+    map.appendChild(hubStack);
+
+    var outStack = el("div", "output-stack");
+    outStack.style.left = COLS.outputs.x + "px";
+    outStack.style.top = stackTop + "px";
+    outStack.style.width = COLS.outputs.w + "px";
+    var outEls = (conf.outputs || []).map(function (n) {
+      var d = el("div", "outcome",
+        "<div><b>" + esc(n.title) + "</b><span>" + esc(n.desc || "") + "</span></div>" +
+        (n.icon ? "<i>" + esc(n.icon) + "</i>" : ""));
+      outStack.appendChild(reveal(d, "after"));
+      return d;
+    });
+    map.appendChild(outStack);
+
+    // 扇入 / 扇出连线：端点全部来自实测节点矩形
+    var hubRect = rectWithin(hubStack, map);
+    inputEls.forEach(function (d, i) {
+      var r = rectWithin(d, map);
+      var ty = hubRect.y + hubRect.h * ((i + 0.5) / inputEls.length);
+      addPath(svg, curve(r.x + r.w, r.cy, hubRect.x - 4, ty), "link", "draw", i);
+    });
+    outEls.forEach(function (d, i) {
+      var r = rectWithin(d, map);
+      var sy = hubRect.y + hubRect.h * ((i + 0.5) / outEls.length);
+      addPath(svg, curve(hubRect.x + hubRect.w + 4, sy, r.x, r.cy), "hot", "fade", i);
+    });
+
+    var side = document.getElementById("afterSide");
+    var s = conf.side || {};
+    var html = '<h2 class="side-title" data-reveal style="--i:0">' + esc(s.title) + "</h2>";
+    if (s.copy) html += '<p class="side-copy" data-reveal style="--i:1">' + esc(s.copy) + "</p>";
+    html += '<div class="value-list">';
+    (s.metrics || []).forEach(function (m, i) {
+      html += '<div class="metric-card" data-reveal style="--i:' + (2 + i) + '">' +
+        "<b>" + esc(m.title) + "</b><span>" + esc(m.desc) + "</span></div>";
+    });
+    html += "</div>";
+    side.innerHTML = html;
+  }
+
+  /* ===== after：旅程时间线（journey） =====
+     轨 + N 张等宽卡（grid 自动均分），每卡 角色/标题/前后对比/证据图。
+     有 side 则右栏放指标（沿用 hub-3col 的 metric）；无 side 则整幅铺满。 */
+  function buildJourney() {
+    var conf = panes.after;
+    var map = document.getElementById("valueMap");
+    var jr = el("div", "jr");
+
+    if (conf.rail && conf.rail.length) {
+      var rail = el("div", "jr-rail");
+      conf.rail.forEach(function (label, i) {
+        rail.appendChild(el("div", "jr-point", "<i>" + (i + 1) + "</i><span>" + esc(label) + "</span>"));
+      });
+      jr.appendChild(reveal(rail, "after"));
+    }
+
+    var grid = el("div", "jr-grid");
+    (conf.cards || []).forEach(function (c) {
+      var shot = "";
+      if (c.shot) {
+        shot = '<button class="jr-shot" type="button" data-full="' + esc(c.shot.full || c.shot.image) +
+          '" data-caption="' + esc(c.shot.caption || c.title || "") + '"><img src="' + esc(c.shot.image) +
+          '" alt="' + esc(c.shot.caption || c.title || "") + '">' +
+          (c.shot.note ? "<span>" + esc(c.shot.note) + "</span>" : "") + "</button>";
+      }
+      var head = '<div class="jr-head">' +
+        (c.eyebrow ? "<em>" + esc(c.eyebrow) + "</em>" : "") +
+        "<h3>" + esc(c.title) + "</h3>" +
+        '<div class="jr-compare">' +
+          (c.before ? "<div><b>之前</b><span>" + esc(c.before) + "</span></div>" : "") +
+          (c.after ? '<div class="is-after"><b>之后</b><span>' + esc(c.after) + "</span></div>" : "") +
+        "</div></div>";
+      grid.appendChild(reveal(el("div", "jr-card", head + shot), "after"));
+    });
+    jr.appendChild(grid);
+    map.appendChild(jr);
+
+    // 块B·同级字号适配（定宽换行，整组统一到能容纳最挤者的最大字号）
+    fitLevel(grid.querySelectorAll(".jr-card h3"), 16, 20, 2);
+    fitLevel(grid.querySelectorAll(".jr-compare span"), 12, 14, 4);
+
+    // 字号定后，统一各卡文字区高度 → 证据图起点与高度一致（同类图同规格）
+    var heads = [].slice.call(grid.querySelectorAll(".jr-head"));
+    if (heads.length > 1) {
+      var maxH = 0;
+      heads.forEach(function (h) { maxH = Math.max(maxH, h.offsetHeight); });
+      heads.forEach(function (h) { h.style.height = maxH + "px"; });
+    }
+
+    var side = document.getElementById("afterSide");
+    var s = conf.side;
+    if (s) {
+      var html = '<h2 class="side-title" data-reveal style="--i:0">' + esc(s.title) + "</h2>";
+      if (s.copy) html += '<p class="side-copy" data-reveal style="--i:1">' + esc(s.copy) + "</p>";
+      html += '<div class="value-list">';
+      (s.metrics || []).forEach(function (m, i) {
+        html += '<div class="metric-card" data-reveal style="--i:' + (2 + i) + '"><b>' +
+          esc(m.title) + "</b><span>" + esc(m.desc) + "</span></div>";
+      });
+      html += "</div>";
+      side.innerHTML = html;
+    } else {
+      var lay = map.closest(".layout");
+      if (lay) lay.classList.add("full");  // 无右栏 → 整幅铺满
+    }
+  }
+
+  /* ===== evidence：实证 pane ===== */
+  function buildEvidence() {
+    var conf = panes.evidence;
+    var panel = document.getElementById("evidencePanel");
+    var head = conf.head || {};
+    var html = '<div class="evidence-head" data-reveal style="--i:0"><h2>' + esc(head.title) + "</h2>" +
+      (head.desc ? "<p>" + esc(head.desc) + "</p>" : "") + "</div>";
+    html += '<div class="evidence-flow">';
+
+    var lg = conf.logic || {};
+    html += '<aside class="proof-logic" data-reveal style="--i:1">' +
+      '<h2 class="logic-title">' + esc(lg.title || "实证链路") + "</h2>" +
+      (lg.copy ? '<p class="logic-copy">' + esc(lg.copy) + "</p>" : "");
+    (lg.steps || []).forEach(function (st, i) {
+      html += '<div class="logic-step"><i>' + (i + 1) + "</i><div><b>" + esc(st.title) +
+        "</b><span>" + esc(st.desc || "") + "</span></div></div>";
+    });
+    html += "</aside>";
+
+    html += '<section class="proof-media" data-reveal style="--i:2">';
+    var videos = conf.videos || [];
+    if (videos.length) {
+      videos.forEach(function (v) {
+        html += '<article class="video-proof"><video src="' + esc(v.src) + '"' +
+          (v.poster ? ' poster="' + esc(v.poster) + '"' : "") +
+          ' controls playsinline preload="metadata"></video><div class="video-copy">' +
+          (v.tag ? "<em>" + esc(v.tag) + "</em>" : "") +
+          "<b>" + esc(v.title) + "</b>" +
+          (v.desc ? "<span>" + esc(v.desc) + "</span>" : "") +
+          "</div></article>";
+      });
+    } else if (conf.hero) {
+      var hv = conf.hero;
+      html += '<button class="hero-shot" type="button" data-full="' + esc(hv.full || hv.image) +
+        '" data-caption="' + esc(hv.caption || "") + '"><img src="' + esc(hv.image) +
+        '" alt="' + esc(hv.caption || "") + '">' +
+        (hv.caption ? "<figcaption>" + esc(hv.caption) + "</figcaption>" : "") + "</button>";
+    }
+    html += "</section>";
+
+    html += '<section class="proof-shots" data-reveal style="--i:3">';
+    (conf.shots || []).forEach(function (s) {
+      html += '<button class="proof-card" type="button" data-full="' + esc(s.full || s.image) +
+        '" data-caption="' + esc(s.caption || s.title) + '"><img src="' + esc(s.image) +
+        '" alt="' + esc(s.title) + '"><div class="proof-copy"><b>' + esc(s.title) + "</b>" +
+        (s.desc ? "<span>" + esc(s.desc) + "</span>" : "") + "</div></button>";
+    });
+    html += "</section>";
+
+    html += '<section class="proof-values" data-reveal style="--i:4">';
+    (conf.values || []).forEach(function (v) {
+      html += '<div class="value-proof"><b>' + esc(v.title) + "</b><span>" + esc(v.desc) + "</span></div>";
+    });
+    html += "</section></div>";
+    panel.innerHTML = html;
+
+    // 块B·同级字号适配：实证里各组同级标题分别统一
+    fitLevel(panel.querySelectorAll(".logic-step b"), 14, 16, 2);
+    fitLevel(panel.querySelectorAll(".proof-copy b"), 13, 16, 2);
+    fitLevel(panel.querySelectorAll(".value-proof b"), 16, 20, 2);
+  }
+
+  /* ===== 授权作图：layout:"raw" 的 pane 由作者 markup 填充，在底座之上自由设计版式 =====
+     html 注入 .raw-pane（1788×820 画布）；css 原样注入（建议加前缀防冲突）；
+     js 以 new Function(pane, CaseCard) 运行，pane = 该 .raw-pane 元素。
+     注意：html 里的 <script> 不会执行（innerHTML 注入），脚本必须走 js 字段。 */
+  function buildRaw(key) {
+    var conf = panes[key];
+    var pane = document.querySelector('.pane[data-pane="' + key + '"]');
+    pane.innerHTML = '<div class="raw-pane">' + (conf.html || "") + "</div>";
+    if (conf.css) {
+      var st = document.createElement("style");
+      st.textContent = conf.css;
+      pane.appendChild(st);
+    }
+    if (conf.js) {
+      try {
+        new Function("pane", "CaseCard", conf.js)(pane.querySelector(".raw-pane"), window.CaseCard);
+      } catch (e) {
+        console.error("[case-card] raw pane js error:", e);
+      }
+    }
+  }
+
+  /* ===== 灯箱（事件委托，覆盖动态节点；也可 CaseCard.lightbox 调用） ===== */
+  var modal = document.getElementById("modal");
+  var modalImg = document.getElementById("modalImg");
+  var modalCaption = document.getElementById("modalCaption");
+
+  // 函数声明（提升）：CaseCard.lightbox 在上方引用它。
+  function openLightbox(src, caption) {
+    if (!src) return;
+    modalImg.src = src;
+    modalImg.alt = caption || "";
+    modalCaption.textContent = caption || "";
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  document.addEventListener("click", function (ev) {
+    var card = ev.target.closest && ev.target.closest("[data-full]");
+    if (!card) return;
+    openLightbox(card.dataset.full, card.dataset.caption);
+  });
+
+  function closeModal() {
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    modalImg.removeAttribute("src");
+  }
+
+  document.querySelector(".close").addEventListener("click", closeModal);
+  modal.addEventListener("click", function (ev) { if (ev.target === modal) closeModal(); });
+  window.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && modal.classList.contains("open")) closeModal();
+  });
+
+  /* ===== 整页缩放 ===== */
+  function scaleStage() {
+    var scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080, 1);
+    document.documentElement.style.setProperty("--stage-scale", scale.toFixed(4));
+  }
+  window.addEventListener("resize", scaleStage);
+  scaleStage();
+
+  /* ===== 启动：有数据直接装配，否则进空状态（含本地 JSON 预览） ===== */
+  if ((data.header && data.header.title) || (data.panes && Object.keys(data.panes).length)) {
+    boot(data);
+  } else {
+    showEmptyState();
+  }
+})();
+</script>
+</body>
+</html>
